@@ -65,6 +65,143 @@ def cr_is_balanced(self):
 
     return c_is_balanced(self._S,self._length,self._m)
 
+def cr_is_equivalent_to_permutation(self,**kwargs):
+    r'''
+    Find equivalent permutation to the function ``F``. The algorithm is discribed in
+    [DILL09] and [COR12].
+
+    EXAMPLE::
+
+        sage: S=Sbox(n=6,m=6)
+        sage: F="g*x^3+g^5*x^10+g^4*x^24"
+        sage: M=S.is_equivalent_to_permutation(F)
+        sage: S.generate_sbox(method="polynomial",G=F,T="CCZ",M=M)
+
+        sage: S.is_bijection()
+        True
+        sage: S.APN()
+        True
+
+    REFERENCES::
+
+    [COR12] E. Cornet. The Dillon-Wolfe Function for Cryptography. Master thesis, Mathematical Sciences, 2012. http://goo.gl/ECwcfh
+    [DILL09] J.F. Dillon. APN polynomials: An update. Slides from a talk at the International Conference
+            on Finite Fields and their Applications, july 2009. at the University College in Dublin. http://goo.gl/5pMHU
+
+    '''
+    F = kwargs.get('F',None)
+    debug = kwargs.get('debug',False)
+    retL  = kwargs.get('L',[])
+    L     = kwargs.get('L1',matrix(GF(2),self._n,0))
+
+    if F is None:
+        raise TypeError("Function 'F' must be presented")
+
+    if not isinstance(retL,list):
+        raise TypeError("Ls must be in list")
+
+    Sigma = [[] for _ in xrange(self._m+self._n)]
+
+    self.generate_sbox(method='polynomial',G=F)
+
+    if self._S[0] != 0:
+        self._S = [self._S[0]^^self._S[g] for g in xrange(self._length)]
+
+    for x in xrange(self._length):
+        if debug:
+            sys.stdout.write("\r[%-100s] %d%%" % ('='*(int(x*100/self._length)), (x*100/self._length).n(2)))
+            sys.stdout.flush()
+        for y in xrange(x+1,self._length):
+            c = matrix(GF(2),self._n+self._m,1,flatten([ZZ(x^^y).digits(2,padto=self._n),ZZ(self._S[x]^^self._S[y]).digits(2,padto=self._m)]))
+            ic = ZZ(c.list(),2).nbits()
+            Sigma[ic-1].append(c[:ic,:])
+
+    if debug:
+        sys.stdout.write("\r[%-100s] %d%%\n" % ('='*100, 100))
+
+    M=matrix(GF(2),self._m+self._n,self._m+self._n)
+    z = zero_matrix(GF(2),self._n,1)    
+    stop = 0
+    
+    if L != matrix(GF(2),self._n,0):
+        j = L.ncols()
+        indexes = [ZZ(g.list(),2)+1 for g in L.columns()] + [0 for _ in xrange(self._n+self._m-j)]
+        retL = [g.echelon_form() for g in retL]
+    else:
+        j = 0
+        indexes = [0 for _ in xrange(self._n+self._m)]
+
+    while True:
+        l = indexes[j]
+
+        if L.ncols() == floor(self._n*1.4) and debug:
+            print "check point = {0} ({1})".format([ZZ(g.list(),2) for g in L.columns()],len(retL))
+        
+        if L.ncols() <= j:
+            L = matrix(GF(2),self._n,j+1,flatten([g.list()+[0] for g in L.rows()]))
+        else:
+            L = L[:,:j+1]
+
+        while True:
+            if j < self._n:
+                if l == ((1<<j)+1):
+                    indexes[j] = 0
+                    j -= 1
+                    break
+            else:
+                if l == self._length:
+                    indexes[j] = 0
+                    j -= 1
+                    break
+
+            L.set_column(j,vector(GF(2),ZZ(l).digits(2,padto=self._n)))
+
+            if L.echelon_form() != L:
+                l += 1
+                continue
+
+            next = 0
+
+            if (j == (self._n+self._m-1)) and (L.rank() != self._n):
+                    next = 1
+            else:
+                for c in Sigma[j]:
+                    if L*c == z:
+                        next = 1
+                        break
+
+            if next == 1:
+                l += 1
+            else:
+                if j == self._n+self._m-1:
+                    eL = L.echelon_form()
+                    if not eL in retL:
+                        if debug:
+                            print "L = {0} ({1})".format([ZZ(g.list(),2) for g in eL.columns()],len(retL))
+                        for rL in retL:
+                            M.set_block(0,0,rL)
+                            M.set_block(self._m,0,eL)
+
+                            if not M.is_singular():
+                                stop = 1
+                                j = -1
+                                break
+                        if j == -1:
+                            break
+                        retL.append(copy(eL))
+                    l += 1
+                else:
+                    indexes[j] = l + 1
+                    j += 1
+                    break
+        if j == -1:
+            break
+
+    if stop == 0:
+        return None
+    else:
+        return M
+
 def cr_check_polynomial(self):
     r"""
     Check on equality polynomial and lookup table representations
