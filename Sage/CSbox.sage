@@ -114,7 +114,8 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
         for y in xrange(x+1,self._length):
             c = matrix(GF(2),self._n+self._m,1,flatten([ZZ(x^^y).digits(2,padto=self._n),ZZ(self._S[x]^^self._S[y]).digits(2,padto=self._m)]))
             ic = ZZ(c.list(),2).nbits()
-            Sigma[ic-1].append(c[:ic,:])
+            if not c[:ic,:] in Sigma[ic-1]:
+                Sigma[ic-1].append(c[:ic,:])
 
     if debug:
         sys.stdout.write("\r[%-100s] %d%%\n" % ('='*100, 100))

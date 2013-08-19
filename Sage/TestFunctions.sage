@@ -96,13 +96,15 @@ def test_all_functions(**kargs):
 def test_equivalence(**kargs):
     bits=kargs.get('bits',3)
 
-    F="g*x^3+g^5*x^10+g^4*x^24"
-
     S=Sbox(n=bits,m=bits)
+
+    F="g*x^3+g^5*x^10+g^4*x^24"
 
     M=S.is_equivalent_to_permutation(F=F)
 
-    S.generate_sbox(method="polynomial",G="g*x^3+g^5*x^10+g^4*x^24",T="CCZ",M=M)
+    print "M:\n{0}".format(M)
+
+    S.generate_sbox(method="polynomial",G=F,T="CCZ",M=M)
 
     print "Sbox\t\t\t\t= {0}".format(S.get_sbox())
     print "Characteristics of boolean functions:"
