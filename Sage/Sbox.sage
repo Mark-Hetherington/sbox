@@ -765,6 +765,7 @@ class Sbox(SageObject):
 
     absolute_indicator=cr_absolute_indicator
     algebraic_immunity_sbox=cr_algebraic_immunity_sbox
+    bdd=cr_bdd
     check_polynomial=cr_check_polynomial
     check_system=cr_check_system
     CI=cr_CI

@@ -2,7 +2,7 @@
 
 A substitution box or S-box is one of the basic components of symmetric key cryptography. In general, an S-box takes _n_ input bits and transforms them into _m_ output bits. This is called an _n x m_ S-box and is often implemented as a lookup table. 
 
-Another representation is by vectorial Boolean function, which is defined by a Polynomial Ring in _x_ over Finite Field in _a_ of size 2<sup>n</sup> with primitive element _g_.
+Another representation is by a vectorial Boolean function, which is defined by a Polynomial Ring in _x_ over Finite Field in _a_ of size 2<sup>n</sup> with primitive element _g_.
 
 Note that by default bits are interpreted in little endian notation, e.g.
 
@@ -19,7 +19,7 @@ Note that by default bits are interpreted in little endian notation, e.g.
 # How to use
 
 1. In Sage. Go to the ''Sage'' directory and type ``load ./Sbox.sage``.
-2. Use externaly (see examples in ''Main.sage'' ).
+2. Use externally (see examples in ''Main.sage'' ).
 
 # Examples
 

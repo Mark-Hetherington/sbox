@@ -93,3 +93,11 @@ def test_all_functions(**kargs):
                 
     return 0
 
+def test_bdd(**kargs):
+    bits=kargs.get('bits',3)
+
+    S=Sbox(n=bits,m=bits,sbox=AES_sbox)
+
+    S.bdd()
+                
+    return 0

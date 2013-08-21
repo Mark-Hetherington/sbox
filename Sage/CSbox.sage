@@ -36,17 +36,49 @@ def cr_absolute_indicator(self):
 
 def cr_algebraic_immunity_sbox(self):
     r"""
-    Return algebraic immunity, that is the maximum degree of a system of equations that describes the S-box, and number of equations
+    Return the algebraic immunity, that is the maximum degree of a system of equations that describes the S-box, and number of equations
 
     EXAMPLE::
 
         sage: S=Sbox(n=3,m=3)
-        sage: sage: S.generate_sbox(method='polynomial',G="g*x^3+1")
+        sage: S.generate_sbox(method='polynomial',G="g*x^3+1")
         sage: S.algebraic_immunity_sbox()
         [2, 14]
     """
 
     return c_algebraic_immunity_sbox(self._S,self._length,self._n,self._m)
+
+def cr_bdd(self,**kargs):
+    r"""
+    Return a binary decision diagram (BDD) for the vectorial boolean function 
+
+    INPUT::
+        
+    - ``file`` -- path to the file with a BDD (default is ``bdd.dot``)
+
+    EXAMPLE::
+
+        sage: S=Sbox(n=3,m=3)
+        sage: S.random_substitution()
+        sage: S.bdd()
+
+    """
+    P = BooleanPolynomialRing(self._n+self._m, ["x%d"%i for i in range(self._n)] + ["y%d"%i for i in range(self._m)])
+    gens = [P("x%d"%(self._n-i-1)) for i in range(self._n)] + [P("y%d"%(self._m-i-1)) for i in range(self._m)]
+
+    g = DiGraph({}, name='bdd', multiedges=True, weighted=True)
+
+    for i,s in enumerate(self._S):
+        chain = ZZ(i).digits(2,padto=self._n)[::-1] + ZZ(s).digits(2,padto=self._m)[::-1]
+
+        for j in xrange(len(gens)-1):
+            g.add_edge(gens[j],gens[j+1],chain[j])
+
+        g.add_edge(gens[-1],chain[-1],chain[-1])
+
+    g.graphviz_to_file_named(kargs.get('file','bdd.dot'),edge_labels=True,color_by_label={ 1: "red", 1: "blue" })
+
+    return 
 
 def cr_is_balanced(self):
     r"""
