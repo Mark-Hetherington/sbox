@@ -63,20 +63,69 @@ def cr_bdd(self,**kargs):
         sage: S.bdd()
 
     """
-    P = BooleanPolynomialRing(self._n+self._m, ["x%d"%i for i in range(self._n)] + ["y%d"%i for i in range(self._m)])
-    gens = [P("x%d"%(self._n-i-1)) for i in range(self._n)] + [P("y%d"%(self._m-i-1)) for i in range(self._m)]
-
     g = DiGraph({}, name='bdd', multiedges=True, weighted=True)
 
+    tree = {1:[None,None,0],self._m+self._n+1:[0,0,self._m+self._n]}
+    ID = 2
+
     for i,s in enumerate(self._S):
-        chain = ZZ(i).digits(2,padto=self._n)[::-1] + ZZ(s).digits(2,padto=self._m)[::-1]
+        chain = ZZ(i).digits(2,padto=self._n) + ZZ(s).digits(2,padto=self._m)
 
-        for j in xrange(len(gens)-1):
-            g.add_edge(gens[j],gens[j+1],chain[j])
+        # print "chain[{0}] = {1}".format(i,chain)
 
-        g.add_edge(gens[-1],chain[-1],chain[-1])
+        state = tree[1]
 
-    g.graphviz_to_file_named(kargs.get('file','bdd.dot'),edge_labels=True,color_by_label={ 1: "red", 1: "blue" })
+        for l in xrange(len(chain)):
+            c = chain[l]
+            # print "tree = {0}".format(tree)
+            # print "state = {0}".format(state)
+            # print "{0}: c = {1}".format(l,c)
+            # print "~"*20
+            #if tree.has_key(l):
+            if state[c] is None:
+                if l == len(chain)-1:
+                    state[c] = self._m+self._n+1
+                else:
+                    state[c] = ID
+                    tree[ID] = [None,None,l+1]
+                    ID += 1
+
+            state = tree[state[c]]
+
+        if i == 0:
+            ID += 1
+
+    string = {1:"1",2:"{0}".format(self._n+self._m+1)}
+    offset = 3
+
+    for i in xrange(self._n+self._m):
+        string[offset+i] = "{0}:".format(i)
+
+    string[offset+self._n+self._m] = "0:"
+    string[offset+self._n+self._m + 1] = "---"
+
+    # print "string:\n{0}".format(string)
+
+    offset = 3
+    for i in tree.iterkeys():
+        if tree[i][0] == None:
+            tree[i][0] = 0
+        if tree[i][1] == None:
+            tree[i][1] = 0
+
+        string[offset + tree[i][-1]] += "({0};{1},{2})".format(i,tree[i][0],tree[i][1])
+
+    for i in xrange(self._n+self._m):
+        string[offset+i] += "|"
+
+    string[offset+self._n+self._m] += "|"
+
+    f = open(kargs.get('file','graph.bdd'), "w")
+    f.write(join(string.values(),'\n'))
+    f.close()
+
+    # print "tree = {0}".format(tree)
+    # print "string:\n{0}".format(join(string.values(),'\n'))
 
     return 
 

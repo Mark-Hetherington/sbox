@@ -23,7 +23,7 @@ os.chdir(os.path.split(os.path.abspath(sys.argv[0]))[0] + "/Sage")
 load ./TestFunctions.sage
 
 def main(argv=None):
-    bits=8
+    bits=2
 
     t1=cputime()
 

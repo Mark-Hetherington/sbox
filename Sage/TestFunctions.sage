@@ -96,7 +96,13 @@ def test_all_functions(**kargs):
 def test_bdd(**kargs):
     bits=kargs.get('bits',3)
 
-    S=Sbox(n=bits,m=bits,sbox=AES_sbox)
+    #S=Sbox(n=bits,m=bits,sbox=AES_sbox)
+    S=Sbox(n=bits,m=bits)
+
+    #S.random_permutation()
+    S.set_sbox([1,2,3,0])
+
+    print "Sbox\t\t\t\t= {0}".format(S.get_sbox())
 
     S.bdd()
                 
