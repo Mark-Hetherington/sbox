@@ -62,63 +62,78 @@ def cr_bdd(self,**kargs):
         sage: S.random_substitution()
         sage: S.bdd()
 
-    """
-    g = DiGraph({}, name='bdd', multiedges=True, weighted=True)
+    NOTE::
 
-    tree = {1:[None,None,0],self._m+self._n+1:[0,0,self._m+self._n]}
-    ID = 2
+        Performance of creation BDDs for permutations:
+
+        n   |  time, s
+        2   : 0.089683
+        3   : 0.002166
+        4   : 0.002525
+        5   : 0.003286
+        6   : 0.005957
+        7   : 0.010892
+        8   : 0.025563
+        9   : 0.056975
+        10  : 0.123558
+        11  : 0.224553
+        12  : 0.603857
+        13  : 1.37071
+        14  : 4.602943
+        15  : 15.688329
+        16  : 59.842752
+        17  : 418.048255
+    """
+    tree = {0:{2:[None,None]},self._m+self._n:{1:[0,0]}}
+    ID = 3
+
+    for i in xrange(1,self._m+self._n):
+        tree[i] = {}
 
     for i,s in enumerate(self._S):
         chain = ZZ(i).digits(2,padto=self._n) + ZZ(s).digits(2,padto=self._m)
 
+        state = 2
+
         # print "chain[{0}] = {1}".format(i,chain)
 
-        state = tree[1]
-
-        for l in xrange(len(chain)):
-            c = chain[l]
+        for l,c in enumerate(chain):
             # print "tree = {0}".format(tree)
             # print "state = {0}".format(state)
             # print "{0}: c = {1}".format(l,c)
             # print "~"*20
-            #if tree.has_key(l):
-            if state[c] is None:
-                if l == len(chain)-1:
-                    state[c] = self._m+self._n+1
+            if tree[l][state][c] is None:
+                if l == self._m+self._n-1:
+                    tree[l][state][c] = 1 # True node
                 else:
-                    state[c] = ID
-                    tree[ID] = [None,None,l+1]
+                    tree[l][state][c] = ID
+                    tree[l+1][ID] = [None,None]
                     ID += 1
+            
+            state = tree[l][state][c]
 
-            state = tree[state[c]]
+    # print "tree = {0}".format(tree)
 
-        if i == 0:
-            ID += 1
+    # return
 
     string = {1:"1",2:"{0}".format(self._n+self._m+1)}
+
     offset = 3
 
-    for i in xrange(self._n+self._m):
-        string[offset+i] = "{0}:".format(i)
+    for l in tree.iterkeys():
+        string[offset+l] = "{0}:".format(l)
 
-    string[offset+self._n+self._m] = "0:"
+        for ID in tree[l].iterkeys():
+            if tree[l][ID][0] is None:
+                tree[l][ID][0] = 0
+            if tree[l][ID][1] is None:
+                tree[l][ID][1] = 0
+
+            string[offset + l] += "({0};{1},{2})".format(ID,tree[l][ID][0],tree[l][ID][1])
+
+        string[offset+l] += "|"
+
     string[offset+self._n+self._m + 1] = "---"
-
-    # print "string:\n{0}".format(string)
-
-    offset = 3
-    for i in tree.iterkeys():
-        if tree[i][0] == None:
-            tree[i][0] = 0
-        if tree[i][1] == None:
-            tree[i][1] = 0
-
-        string[offset + tree[i][-1]] += "({0};{1},{2})".format(i,tree[i][0],tree[i][1])
-
-    for i in xrange(self._n+self._m):
-        string[offset+i] += "|"
-
-    string[offset+self._n+self._m] += "|"
 
     f = open(kargs.get('file','graph.bdd'), "w")
     f.write(join(string.values(),'\n'))
@@ -127,7 +142,7 @@ def cr_bdd(self,**kargs):
     # print "tree = {0}".format(tree)
     # print "string:\n{0}".format(join(string.values(),'\n'))
 
-    return 
+    return
 
 def cr_is_balanced(self):
     r"""
