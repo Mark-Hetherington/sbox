@@ -37,7 +37,7 @@ def gen_APN6(self, **kwargs):
 
     F="g*x^3+g^5*x^10+g^4*x^24"
 
-    tr=self._P(self.Tr_pol(x=self._P("x"),n=self._n,m=self._n/2))
+    tr = self._P(self.Tr_pol(x=self._P("x"),n=self._n,m=self._n/2))
 
     #M = matrix(GF(2),2*self._n)
     
@@ -500,7 +500,7 @@ def gen_random_substitution(self, **kwargs):
         [2, 4, 7, 7, 4, 5, 2, 7]
 
     """
-    self._S = [randint(0,1<<self._m-1) for _ in xrange(self._length)]
+    self._S = [randint(0,(1<<self._m)-1) for _ in xrange(self._length)]
 
 def gen_random_permutation(self, **kwargs):
     r"""
