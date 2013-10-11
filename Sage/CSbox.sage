@@ -91,7 +91,7 @@ def cr_bdd(self,**kargs):
         tree[i] = {}
 
     for i,s in enumerate(self._S):
-        chain = ZZ(i).digits(2,padto=self._n) + ZZ(s).digits(2,padto=self._m)
+        chain = ZZ(i).digits(2,padto=self._n)[::-1] + ZZ(s).digits(2,padto=self._m)[::-1]
 
         state = 2
 
