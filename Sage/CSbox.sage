@@ -137,7 +137,7 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
 
         if L.ncols() == floor(self._n*1.4) and debug:
             print "check point = {0} ({1})".format([ZZ(g.list(),2) for g in L.columns()],len(retL))
-        
+
         if L.ncols() <= j:
             L = matrix(GF(2),self._n,j+1,flatten([g.list()+[0] for g in L.rows()]))
         else:
@@ -175,21 +175,21 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
                 l += 1
             else:
                 if j == self._n+self._m-1:
-                    eL = L.echelon_form()
-                    if not eL in retL:
-                        if debug:
-                            print "L = {0} ({1})".format([ZZ(g.list(),2) for g in eL.columns()],len(retL))
-                        for rL in retL:
-                            M.set_block(0,0,rL)
-                            M.set_block(self._m,0,eL)
+                    if debug:
+                        print "L = {0} ({1})".format([ZZ(g.list(),2) for g in L.columns()],len(retL))
 
-                            if not M.is_singular():
-                                stop = 1
-                                j = -1
-                                break
-                        if j == -1:
+                    for rL in retL:
+                        M.set_block(0,0,rL)
+                        M.set_block(self._m,0,L)
+
+                        if not M.is_singular():
+                            stop = 1
+                            j = -1
                             break
-                        retL.append(copy(eL))
+                    if j == -1:
+                        break
+
+                    retL.append(copy(L))
                     l += 1
                 else:
                     indexes[j] = l + 1
