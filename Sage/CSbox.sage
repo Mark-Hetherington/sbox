@@ -70,6 +70,14 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
     Find equivalent permutation to the function ``F``. The algorithm is discribed in
     [DILL09] and [COR12].
 
+    INPUT::
+        
+    - ``F`` -- string (default: None), input polynomial for checking
+    - ``debug`` -- boolean (default: False), input polynomial for checking
+    - ``foundL`` -- list (default: []), a list of linear functions 
+    - ``full`` -- boolean (default: False), in case of ``True`` return all possible linear matrices which give permutations
+    - ``L`` -- matrix (default: zero matrix), initial value of the state (matrix)
+
     EXAMPLE::
 
         sage: S=Sbox(n=6,m=6)
@@ -89,15 +97,16 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
             on Finite Fields and their Applications, july 2009. at the University College in Dublin. http://goo.gl/5pMHU
 
     '''
-    F = kwargs.get('F',None)
-    debug = kwargs.get('debug',False)
-    retL  = kwargs.get('L',[])
-    L     = kwargs.get('L1',matrix(GF(2),self._n,0))
+    F       = kwargs.get('F',None)
+    debug   = kwargs.get('debug',False)
+    foundL  = kwargs.get('foundL',[])
+    full    = kwargs.get('full',False)
+    L       = kwargs.get('L',matrix(GF(2),self._n,0))
 
     if F is None:
         raise TypeError("Function 'F' must be presented")
 
-    if not isinstance(retL,list):
+    if not isinstance(foundL,list):
         raise TypeError("Ls must be in list")
 
     Sigma = [[] for _ in xrange(self._m+self._n)]
@@ -120,14 +129,15 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
     if debug:
         sys.stdout.write("\r[%-100s] %d%%\n" % ('='*100, 100))
 
-    M=matrix(GF(2),self._m+self._n,self._m+self._n)
+    M = matrix(GF(2),self._m+self._n,self._m+self._n)
+    foundM = []
     z = zero_matrix(GF(2),self._n,1)    
     stop = 0
     
     if L != matrix(GF(2),self._n,0):
         j = L.ncols()
         indexes = [ZZ(g.list(),2)+1 for g in L.columns()] + [0 for _ in xrange(self._n+self._m-j)]
-        retL = [g.echelon_form() for g in retL]
+        foundL = [g.echelon_form() for g in foundL]
     else:
         j = 0
         indexes = [0 for _ in xrange(self._n+self._m)]
@@ -136,7 +146,7 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
         l = indexes[j]
 
         if L.ncols() == floor(self._n*1.4) and debug:
-            print "check point = {0} ({1})".format([ZZ(g.list(),2) for g in L.columns()],len(retL))
+            print "check point\t: {0} ({1})".format([ZZ(g.list(),2) for g in L.columns()],len(foundL))
 
         if L.ncols() <= j:
             L = matrix(GF(2),self._n,j+1,flatten([g.list()+[0] for g in L.rows()]))
@@ -157,39 +167,43 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
 
             L.set_column(j,vector(GF(2),ZZ(l).digits(2,padto=self._n)))
 
-            if L.echelon_form() != L:
-                l += 1
-                continue
-
             next = 0
 
             if (j == (self._n+self._m-1)) and (L.rank() != self._n):
-                    next = 1
+                next = 1
             else:
-                for c in Sigma[j]:
-                    if L*c == z:
-                        next = 1
-                        break
+                if L.echelon_form() != L:
+                    next = 1
+                else:
+                    for c in Sigma[j]:
+                        if L*c == z:
+                            next = 1
+                            break
 
             if next == 1:
                 l += 1
             else:
                 if j == self._n+self._m-1:
                     if debug:
-                        print "L = {0} ({1})".format([ZZ(g.list(),2) for g in L.columns()],len(retL))
+                        print "L\t\t: {0} ({1})".format([ZZ(g.list(),2) for g in L.columns()],len(foundL)+1)
 
-                    for rL in retL:
+                    for rL in foundL:
                         M.set_block(0,0,rL)
                         M.set_block(self._m,0,L)
 
                         if not M.is_singular():
-                            stop = 1
-                            j = -1
-                            break
+                            if full is True:
+                                foundM.append(M)
+                                if debug:
+                                    print "M\t\t: {0} ({1})".format([ZZ(g.list(),2) for g in foundM[-1].columns()],len(foundM))
+                            else:
+                                stop = 1
+                                j = -1
+                                break
                     if j == -1:
                         break
 
-                    retL.append(copy(L))
+                    foundL.append(copy(L))
                     l += 1
                 else:
                     indexes[j] = l + 1
@@ -198,7 +212,10 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
         if j == -1:
             break
 
-    if stop == 0:
+    if full is True:
+        return foundM
+    elif stop == 0:
+        return M
         return None
     else:
         return M
