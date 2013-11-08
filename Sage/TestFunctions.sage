@@ -85,8 +85,8 @@ def test_all_functions(**kargs):
         print "Maximum of diff table\t\t= {0}".format(S.MDT())
         print "Maximum of lin table\t\t= {0}".format(S.MLT())
         print "Cycles\t\t\t\t= {0}".format(S.cycles())
-        ret=S.algebraic_immunity_sbox()
-        print "Algebraic immunity\t\t: degree={0} equations={1}".format(ret[0],ret[1])
+        ret=S.algebraic_immunity_sbox(sparseness=True)
+        print "Algebraic immunity\t\t: degree={0} equations={1} sparseness={2}".format(ret[0],ret[1],ret[2])
         print "Check system\t\t\t= {0}".format(S.check_system(degree=ret[0]))
         print "~"*40
         print ""

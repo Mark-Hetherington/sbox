@@ -34,9 +34,13 @@ def cr_absolute_indicator(self):
 
     return c_absolute_indicator(self._S,self._length)
 
-def cr_algebraic_immunity_sbox(self):
+def cr_algebraic_immunity_sbox(self,**kwargs):
     r"""
-    Return algebraic immunity, that is the maximum degree of a system of equations that describes the S-box, and number of equations
+    Return algebraic immunity, that is the maximum degree of a system of equations that describes the S-box, and number of equations (and sparseness)
+
+    INPUT::
+
+        - ``sparseness`` -- if ``True`` (default: False) additional return sparseness of the system of equations
 
     EXAMPLE::
 
@@ -44,9 +48,23 @@ def cr_algebraic_immunity_sbox(self):
         sage: sage: S.generate_sbox(method='polynomial',G="g*x^3+1")
         sage: S.algebraic_immunity_sbox()
         [2, 14]
+
+        sage: S=Sbox(n=3,m=3)
+        sage: sage: S.generate_sbox(method='polynomial',G="g*x^3+1")
+        sage: S.algebraic_immunity_sbox(sparseness=True)
+        [2, 14, 0.687]
     """
 
-    return c_algebraic_immunity_sbox(self._S,self._length,self._n,self._m)
+    sparseness = kwargs.get('sparseness',False)
+
+    [deg,neq] = c_algebraic_immunity_sbox(self._S,self._length,self._n,self._m)
+
+    if sparseness:
+        system = self.create_system(degree=deg)
+        sp = 1-sum([len(g.monomials()) for g in system])/RR(neq*sum([binomial(self._n+self._m,g) for g in xrange(deg+1)]))
+        return [deg,neq,sp.n(digits=3)]
+    else:
+        return [deg,neq]
 
 def cr_is_balanced(self):
     r"""
