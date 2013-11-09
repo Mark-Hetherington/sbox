@@ -18,7 +18,7 @@ AUTHORS:
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
-#***************************************************************************** 
+#*****************************************************************************
 
 def cr_absolute_indicator(self):
     r"""
@@ -40,7 +40,7 @@ def cr_algebraic_immunity_sbox(self,**kwargs):
 
     INPUT::
 
-        - ``sparseness`` -- if ``True`` (default: False) additional return sparseness of the system of equations
+        - ``sparseness`` -- if ``True`` (default: False) additional return sparseness of the system of equations (and sparseness)
 
     EXAMPLE::
 
@@ -134,7 +134,7 @@ def cr_check_system(self, system=None, degree=2):
 
 def cr_CI(self):
     r"""
-    Return the correlation immunity of the vectorial boolean function 
+    Return the correlation immunity of the vectorial boolean function
 
     EXAMPLE::
 
@@ -179,30 +179,30 @@ def cr_create_system(self, degree=2, groebner=False):
 
     bits = []
     for i in xrange(self._length):
-        bits.append( list(reversed(ZZ(i).digits(base=2,padto=self._n))) + list(reversed(ZZ(self._S[i]).digits(base=2,padto=self._m))) )
-
-    nrows = self._length
-    ncols = sum(binomial(self._m+self._n,i) for i in range(0,degree+1))
-
-    A = Matrix(GF(2), nrows , ncols)
+        bits.append( ZZ(i).digits(base=2,padto=self._n)[::-1] + ZZ(self._S[i]).digits(base=2,padto=self._m)[::-1] )
 
     exponents = []
     for d in xrange(degree+1):
         exponents += IntegerVectors(d, max_length=self._n+self._m, min_length=self._n+self._m, min_part=0, max_part=1).list()
 
-    col = 0
+    nrows = self._length
+    ncols = len(exponents)
+
+    A = Matrix(GF(2), nrows , ncols)
+
+    exponents = exponents[::-1]
+
     variables = []
-    for exponent in exponents:
-        variables.append( mul([gens[i]**exponent[i] for i in range(len(exponent))]))
+    for col,exponent in enumerate(exponents):
+        variables.append( mul([gens[g] for g in range(len(exponent)) if exponent[g]]))
         for row in xrange(self._length):
-            A[row,col] = mul([bits[row][i] for i in range(len(exponent)) if exponent[i]])
-        col +=1
+            A[row,col] = mul([bits[row][g] for g in range(len(exponent)) if exponent[g]])
 
-    system=A.right_kernel()
-    system=system.matrix()
+    system = A.right_kernel()
+    system = system.matrix()
 
-    gens=[]
-    length=len(variables)
+    gens = []
+    length = len(variables)
     for j in xrange(len(system.rows())):
         gens.append(sum(variables[i]*system[j][i] for i in xrange(length)) )
 
@@ -227,7 +227,7 @@ def cr_cycles(self,**kargs):
     Return cycle structure of the substitution
 
     INPUT::
-        
+
     - ``graph`` -- if ``True`` save cycles in ``dot`` format, which can be imported by gephi (see http://www.gephi.org)
     - ``file`` -- path to the file with a graph (default is ``cycles.dot``)
     - ``format`` -- string, how to represent the result, e.g.,
@@ -400,7 +400,7 @@ def cr_cycles(self,**kargs):
                         output[3] += 1
                     else:
                         output[2] += 1
-                            
+
                     unique_cycles.append(tmp)
             else:
                 output[1] += 1
@@ -525,7 +525,7 @@ def cr_difference_distribution_matrix(self):
         [0 0 2 2 0 0 0 0 0 0 0 0 2 0 0 2]
         [4 0 0 0 0 0 0 0 0 0 0 0 2 0 2 0]
 
-    NOTE:: 
+    NOTE::
 
         This functions is very slow and can be used only for small substitutions
     """
@@ -607,10 +607,10 @@ def cr_is_APN(self, mode="c"):
     Return ``True`` if the substitution is APN (2-uniform)
 
     INPUT:
-    
+
     - ``mode`` -- string, which algorithm is used for calculation, e.g.,
-        - ``c`` (default) -- "C" program 
-        - ``sage`` -- Sage implementation 
+        - ``c`` (default) -- "C" program
+        - ``sage`` -- Sage implementation
 
     EXAMPLE::
 
@@ -674,7 +674,7 @@ def cr_is_CCZ_equivalent(self,F=None,G=None):
     M=Matrix(GF(2), self._length, self._n + self._m + 1, [[1]+ZZ(i).digits(2,padto=self._n)+vector(polF.subs(self._K.fetch_int(i))).list() for i in xrange(self._length)])
     M=M.transpose()
     CF=LinearCode(M)
-    
+
     M=Matrix(GF(2), self._length, self._n + self._m + 1, [[1]+ZZ(i).digits(2,padto=self._n)+vector(polG.subs(self._K.fetch_int(i))).list() for i in xrange(self._length)])
     M=M.transpose()
     CG=LinearCode(M)
@@ -686,9 +686,9 @@ def cr_MDT(self,addition='XOR'):
     Return the maximum value of differential table.
 
     INPUT::
-    
+
     - ``addition`` –- string, describes a key addition method, e.g.,
-        - ``'XOR'`` (default) --  compute difference for XOR->XOR 
+        - ``'XOR'`` (default) --  compute difference for XOR->XOR
 
     EXAMPLE::
 
@@ -712,7 +712,7 @@ def cr_maximal_difference_probability(self,addition='XOR'):
     Return the maximum difference probability
 
     INPUT::
-    
+
     - ``addition`` –- string, describes a key addition method, e.g.,
         - ``'XOR'`` (default) --  compute difference for XOR->XOR
 
@@ -738,7 +738,7 @@ def cr_maximal_linear_bias(self,addition='XOR'):
     Return the maximum linear bias
 
     INPUT::
-    
+
     - addition –- string, describes a key addition method, e.g.,
         - ``'XOR'`` --  compute difference for XOR->XOR (default)
 
@@ -777,7 +777,7 @@ def cr_MLT(self,addition='XOR'):
     Return the maximum value of linear approximation table.
 
     INPUT::
-    
+
     - addition –- string, describes a key addition method, e.g.,
         - ``'XOR'`` --  compute difference for XOR->XOR (default)
 
@@ -835,7 +835,7 @@ def cr_resilient(self):
         sage: S=Sbox(n=5,m=5)
         sage: S.generate_sbox(method='polynomial',G='x^10')
         sage: S.resilient()
-        0 
+        0
 
         sage: S=Sbox(n=3,m=3,sbox=[0,1,2,3,4,5,6,0])
         sage: S.resilient()
