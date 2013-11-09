@@ -60,8 +60,9 @@ def cr_algebraic_immunity_sbox(self,**kwargs):
     [deg,neq] = c_algebraic_immunity_sbox(self._S,self._length,self._n,self._m)
 
     if sparseness:
-        system = self.create_system(degree=deg)
-        sp = 1-sum([len(g.monomials()) for g in system])/RR(neq*sum([binomial(self._n+self._m,g) for g in xrange(deg+1)]))
+        if self._system is None:
+            self._system = self.create_system(degree=deg)
+        sp = 1-sum([len(g.monomials()) for g in self._system])/RR(neq*sum([binomial(self._n+self._m,g) for g in xrange(deg+1)]))
         return [deg,neq,sp.n(digits=3)]
     else:
         return [deg,neq]
@@ -117,17 +118,19 @@ def cr_check_system(self, system=None, degree=2):
     P = BooleanPolynomialRing(self._n+self._m, ["x%d"%i for i in range(self._n)] + ["y%d"%i for i in range(self._m)])
     gens = [P("x%d"%(self._n-i-1)) for i in range(self._n)] + [P("y%d"%(self._m-i-1)) for i in range(self._m)]
 
-    if system is None:
-        system = self.create_system(degree=degree)
+    if system is not None:
+        self._system = system[:]
+    elif self._system is None:
+        self._system = self.create_system(degree=degree)
 
-    if len(system) == 0:
+    if self._system is None:
         return "System doesn't exist"
 
     solutions = []
     for i in range(self._length):
-        solutions.append( dict(zip(gens, list(reversed(ZZ(i).digits(base=2,padto=self._n))) + list(reversed(ZZ(self._S[i]).digits(base=2,padto=self._m))) )) )
+        solutions.append( dict(zip(gens, ZZ(i).digits(base=2,padto=self._n)[::-1] + ZZ(self._S[i]).digits(base=2,padto=self._m)[::-1] )) )
 
-    if any(f.subs(s) for f in system for s in solutions) == False:
+    if any(f.subs(s) for f in self._system for s in solutions) == False:
         return True
 
     return False
@@ -205,6 +208,11 @@ def cr_create_system(self, degree=2, groebner=False):
     length = len(variables)
     for j in xrange(len(system.rows())):
         gens.append(sum(variables[i]*system[j][i] for i in xrange(length)) )
+
+    if len(gen) == 0:
+        self._system = None
+    else:
+        self._system = gens
 
     return gens
 

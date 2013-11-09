@@ -130,6 +130,7 @@ class Sbox(SageObject):
         self._m=m
         self._length=1<<self._n
         self._LFoEA = [None,None,None,None,None]
+        self._system = None
         
         if self._modulus is None:
             self._K = GF(1<<max(self._m,self._n),'a',modulus='conway')
@@ -523,6 +524,7 @@ class Sbox(SageObject):
 
         self._polynomial = None
         self._S = sbox[:]
+        self._system = None
         self._LFoEA = [None,None,None,None,None]
 
     def l2m(self,L=None):
