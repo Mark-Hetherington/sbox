@@ -35,7 +35,7 @@ cdef extern from *:
     int AC(char *f, int FunctionsLength)
     int CI(int m,char *f, int FunctionsLength)
     int minimum_degree(char *f, int FunctionsLength)
-    int PC(int k,char *f, int FunctionsLength)
+    int PropagationCriterion(int k,char *f, int FunctionsLength)
     unsigned long long SumOfSquares(char *f, int FunctionsLength)
     int algebraic_immunity(char **Functions, int deg, int FunctionsLength, int SboxBitIn, int SboxBitOut)
     unsigned long long d_uniform(unsigned long long *Sbox, unsigned long long SboxLength, unsigned long long TableSize, unsigned long long delta)
@@ -45,7 +45,7 @@ def c_absolute_indicator(pSbox,length):
     r"""
     Return the maximum value of the autocorrelation spectrum
 
-    It is a convenience function and connects cr_autocorrelation() in CSbox with 
+    It is a convenience function and connects cr_autocorrelation() in CSbox with
     AC() in AC.c
 
     INPUT::
@@ -73,12 +73,12 @@ def c_absolute_indicator(pSbox,length):
 def c_algebraic_immunity_sbox(pSbox,length,SboxBitIn,SboxBitOut):
     r"""
     Return algebraic immunity, that is the maximum degree of a system of equations that describes the S-box
-    
+
     It is a convenience function and connects cr_algebraic_immunity_sbox() in CSbox
     with alg_eq_Sbox() in  AlgebraicImmunity.c
 
     INPUT::
-    
+
         - ``pSbox`` -- array of integers
         - ``length`` -- length of array
         - ``SboxBitIn`` -- number of in-bits ('n')
@@ -111,13 +111,13 @@ def c_algebraic_immunity_sbox(pSbox,length,SboxBitIn,SboxBitOut):
 def c_is_balanced(pSbox,length,SboxBitOut):
     r"""
     Check S-box on balancedness
-    
+
     INPUT::
-        
+
         - ``pSbox`` -- array of integers
         - ``length`` -- length of array
         - ``SboxBitOut`` -- number of out-bits ('m')
-    
+
     """
     for j in xrange(1,1<<SboxBitOut):
         if [(ZZ(s&j).popcount())&1 for s in pSbox].count(1)  != (length>>1):
@@ -127,16 +127,16 @@ def c_is_balanced(pSbox,length,SboxBitOut):
 
 def c_CI(pSbox,length):
     r"""
-    Return the correlation immunity of the vectorial boolean function 
-    
-    It is a convenience function and connects cr_CI() in CSbox with 
+    Return the correlation immunity of the vectorial boolean function
+
+    It is a convenience function and connects cr_CI() in CSbox with
     CI() in CI.c
-    
+
     INPUT::
 
         - ``pSbox`` -- array of integers
         - ``length`` - length of array
-    
+
     """
     cdef char *fSbox = <char *>malloc(length*sizeof(char))
 
@@ -159,16 +159,16 @@ def c_CI(pSbox,length):
 def c_is_APN(pSbox,length,TableSize):
     r"""
     Return 0 if the substitution is APN (2-uniform)
-    
-    It is a convenience function and connects cr_is_APN() in CSbox with 
+
+    It is a convenience function and connects cr_is_APN() in CSbox with
     d_uniform() in MDT.c
-    
+
     INPUT::
-    
+
         - ``pSbox`` -- array of integers
         - ``length`` -- lenght of array
         - ``TableSize`` -- length of a differential table
-    
+
     """
     cdef unsigned long long *cSbox = <unsigned long long *>malloc(length*sizeof(unsigned long long))
 
@@ -184,16 +184,16 @@ def c_is_APN(pSbox,length,TableSize):
 def c_MDT(pSbox,length,TableSize):
     r"""
     Return the maximum value of differential table.
-    
-    It is a convenience function and connects cr_MDT() in CSbox with 
+
+    It is a convenience function and connects cr_MDT() in CSbox with
     d_uniform() in MDT.c
-    
+
     INPUT::
-    
+
         - ``pSbox`` -- array of integers
         - ``length`` -- length of array
-        - ``TableSize`` -- length of a differential table 
-    
+        - ``TableSize`` -- length of a differential table
+
     """
     cdef unsigned long long *cSbox = <unsigned long long *>malloc(length*sizeof(unsigned long long))
 
@@ -209,15 +209,15 @@ def c_MDT(pSbox,length,TableSize):
 def c_minimum_degree(pSbox,length):
     r"""
     Return the minimum degree of substitution
-    
-    It is a convenience function and connects cr_minimum_degree() in CSbox with 
+
+    It is a convenience function and connects cr_minimum_degree() in CSbox with
     minimum_degree() in MinimumDegree.c
-    
+
     INPUT::
-    
+
         - ``pSbox`` -- array of integers
-        - ``length`` -- length of array 
-    
+        - ``length`` -- length of array
+
     """
     cdef char *fSbox = <char *>malloc(length*sizeof(char))
 
@@ -238,16 +238,16 @@ def c_minimum_degree(pSbox,length):
 def c_MLT(pSbox,SboxBitIn,SboxBitOut):
     r"""
     Return the maximum value of linear approximation table
-    
-    It is a convenience function and connects cr_MLT() in CSbox with 
+
+    It is a convenience function and connects cr_MLT() in CSbox with
     c_lambda() in MLT.c
-    
+
     INPUT::
-    
+
         - ``pSbox`` -- array of integers
         - ``SboxBitIn`` -- number of in-bits ('n')
         - ``SboxBitOut`` -- number of out-bits ('m')
-    
+
     """
     cdef unsigned long long *cSbox = <unsigned long long *>malloc((1<<SboxBitIn)*sizeof(unsigned long long))
 
@@ -263,15 +263,15 @@ def c_MLT(pSbox,SboxBitIn,SboxBitOut):
 def c_PC(pSbox,length):
     r"""
     Return the value of propogation criterion
-    
-    It is a convenience function and connects cr_PC() in CSbox with 
+
+    It is a convenience function and connects cr_PC() in CSbox with
     PC() in PC.c
 
     INPUT::
-    
+
         - ``pSbox`` -- array of integers
         - ``length`` -- length of array
-    
+
     """
     cdef char *fSbox = <char *>malloc(length*sizeof(char))
 
@@ -282,7 +282,7 @@ def c_PC(pSbox,length):
         for j in xrange(1,length):
             for i in xrange(length):
                 fSbox[i] = (ZZ(pSbox[i]&j).popcount())&1
-            pc&=PC(k, fSbox, length)
+            pc&=PropagationCriterion(k, fSbox, length)
         if pc == 0:
             free(fSbox)
             return ZZ(k-1)
@@ -294,15 +294,15 @@ def c_PC(pSbox,length):
 def c_SSI(pSbox,length):
     r"""
     Return the sum-of-squares indicator
-    
-    It is a convenience function and connects cr_SSI() in CSbox with 
+
+    It is a convenience function and connects cr_SSI() in CSbox with
     SumOfSquares() in SSI.c
-    
+
     INPUT::
-    
+
         - ``pSbox`` -- array of integers
         - ``length`` -- length of array
-    
+
     """
     cdef char *fSbox = <char *>malloc(length*sizeof(char))
 

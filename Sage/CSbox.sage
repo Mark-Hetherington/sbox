@@ -45,25 +45,23 @@ def cr_algebraic_immunity_sbox(self,**kwargs):
     EXAMPLE::
 
         sage: S=Sbox(n=3,m=3)
-        sage: sage: S.generate_sbox(method='polynomial',G="g*x^3+1")
+        sage: S.generate_sbox(method='polynomial',G="g*x^3+1")
         sage: S.algebraic_immunity_sbox()
         [2, 14]
 
         sage: S=Sbox(n=3,m=3)
-        sage: sage: S.generate_sbox(method='polynomial',G="g*x^3+1")
+        sage: S.generate_sbox(method='polynomial',G="g*x^3+1")
         sage: S.algebraic_immunity_sbox(sparseness=True)
         [2, 14, 0.687]
     """
-
     sparseness = kwargs.get('sparseness',False)
 
     [deg,neq] = c_algebraic_immunity_sbox(self._S,self._length,self._n,self._m)
 
     if sparseness:
-        if self._system is None:
+        if self._system is None or len(self._system) != neq:
             self._system = self.create_system(degree=deg)
-        sp = 1-sum([len(g.monomials()) for g in self._system])/RR(neq*sum([binomial(self._n+self._m,g) for g in xrange(deg+1)]))
-        return [deg,neq,sp.n(digits=3)]
+        return [deg,neq,self.sparseness(system=self._system)]
     else:
         return [deg,neq]
 
@@ -172,8 +170,6 @@ def cr_create_system(self, degree=2, groebner=False):
          x0*y2 + x1*y2 + y1*y2,
          x1*y0 + y0*y1]
     """
-    #t1=time()
-
     P = BooleanPolynomialRing(self._n+self._m, ["x%d"%i for i in range(self._n)] + ["y%d"%i for i in range(self._m)])
     X = [P("x%d"%(self._n-i-1)) for i in range(self._n)]
     Y = [P("y%d"%(self._m-i-1)) for i in range(self._m)]
@@ -209,10 +205,10 @@ def cr_create_system(self, degree=2, groebner=False):
     for j in xrange(len(system.rows())):
         gens.append(sum(variables[i]*system[j][i] for i in xrange(length)) )
 
-    if len(gen) == 0:
+    if len(gens) == 0:
         self._system = None
     else:
-        self._system = gens
+        self._system = gens[:]
 
     return gens
 
@@ -872,6 +868,39 @@ def cr_SAC(self):
         return True
     else:
         return False
+
+def cr_sparseness(self,system=None,digits=3):
+    r"""
+    Return sparseness of the system of equations
+
+    INPUT::
+
+        ``system`` -- compute sparseness for the given system, otherwise call the ``create_system`` function
+        ``digits`` -- precision of the return value
+
+    EXAMPLE::
+
+        sage: S=Sbox(n=3,m=3)
+        sage: S.generate_sbox(method='polynomial',G="g*x^3+1")
+        sage: S.sparseness()
+        0.750
+
+        sage: S=Sbox(n=3,m=3)
+        sage: S.generate_sbox(method='polynomial',G="g*x^3+1")
+        sage: system = S.create_system(degree=3)
+        sage: S.sparseness(system=system,digits=6)
+        0.877451
+    """
+
+    if system is None:
+        [deg,neq] = self.algebraic_immunity_sbox()
+        system = self.create_system(degree=deg)
+    else:
+        [deg,neq] = [max([g.degree() for g in system]),len(system)]
+
+    sp = 1-sum([len(g.monomials()) for g in system])/RR(neq*sum([binomial(self._n+self._m,g) for g in xrange(deg+1)]))
+
+    return sp.n(digits=digits)
 
 def cr_SSI(self):
     r"""

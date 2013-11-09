@@ -47,14 +47,14 @@ class Sbox(SageObject):
     A substitution box or S-box is one of the basic components of
     symmetric key cryptography. In general, an S-box takes ``n`` input
     bits and transforms them into ``m`` output bits. This is called an
-    ``nxm`` S-box and is often implemented as a lookup table. 
-    
+    ``nxm`` S-box and is often implemented as a lookup table.
+
     Another representation is by vectorial Boolean functions, which is defined
-    by a Polynomial Ring in ``x`` over Finite Field in ``a`` of size ``2^n`` with 
+    by a Polynomial Ring in ``x`` over Finite Field in ``a`` of size ``2^n`` with
     primitive element ``g``.
-    
+
     EXAMPLE::
-    
+
     We consider a small S-box::
 
         sage: sbox=[1,2,3,0,7,6,5,4]
@@ -68,31 +68,31 @@ class Sbox(SageObject):
 
     def __init__(self, n=None, m=None, **kwargs):
         r"""
-        
-        Construct a substitution box (S-box) with ``n`` input bits and ``m`` output bits 
+
+        Construct a substitution box (S-box) with ``n`` input bits and ``m`` output bits
         with given properties.
-        
+
         If ``n`` and ``m`` are not defined then a ``TypeError`` is raised.
 
         INPUT::
-        
+
             - ``n``    -- number of input bits of Sbox
-        
+
             - ``m`` -- number of output bits of Sbox
-            
+
             - ``modulus`` -- irreducible polynomial, defining the finite field
 
             - ``sbox`` -- array of integers, defining a mapping
-        
+
         EXAMPLE::
-        
+
         We construct an ``3x3`` S-box :
-::        
+::
             sage: S=Sbox(n=3,m=3)
             sage: S.generate_sbox(method='random_permutation')
             sage: S # random
             [0, 1, 2, 5, 7, 3, 4, 6]
-        
+
         We construct an ``3x3`` S-box defined by polynomial :
 ::
             sage: S=Sbox(n=3,m=3,polynomial='g*x^3+1')
@@ -105,7 +105,7 @@ class Sbox(SageObject):
             sage: S
             [0, 2, 3, 4, 1, 1, 1, 1]
 
-        Check the correctness of the given arguments  
+        Check the correctness of the given arguments
 
 ::
             sage: S=Sbox(n=2,m=2,sbox=[3,9,0,0])
@@ -131,7 +131,7 @@ class Sbox(SageObject):
         self._length=1<<self._n
         self._LFoEA = [None,None,None,None,None]
         self._system = None
-        
+
         if self._modulus is None:
             self._K = GF(1<<max(self._m,self._n),'a',modulus='conway')
         else:
@@ -160,11 +160,11 @@ class Sbox(SageObject):
     def __call__(self, val):
         r"""
             Apply substitution to ``val``
-            
+
         INPUT::
-            
+
             -``val`` -- an integer
-            
+
         EXAMPLE::
 
             sage: S = Sbox(n=3,m=3,sbox=[4,5,6,7,0,1,2,3])
@@ -242,15 +242,15 @@ class Sbox(SageObject):
     def g2p(self,pol=None):
         r"""
         Convert polynomial with primitive element to internal representation
-            
+
         INPUT::
 
             - ``pol`` -- polynomial
-        
+
         OUTPUT::
 
             - The internal representation of a polynomial with primitive element
-        
+
         EXAMPLE::
 
             sage: S=Sbox(n=3,m=3)
@@ -260,7 +260,7 @@ class Sbox(SageObject):
 
             sage: S.g2p(S.interpolation_polynomial())
             a^2*x^5 + (a^2 + 1)*x^3 + (a + 1)*x + a^2 + a
-        """    
+        """
         if pol is not None:
             return self._P(pol.replace("g","({0})".format(self._K.multiplicative_generator())))
         else:
@@ -269,11 +269,11 @@ class Sbox(SageObject):
     def generate_sbox(self, method=None, T=None, **kwargs):
         r'''
         General function for generating substitutions
-        
+
         INPUT::
-        
-            - ``method`` -- a string, which method will be used, e.g., 
-            
+
+            - ``method`` -- a string, which method will be used, e.g.,
+
                 - ``'APN6'`` -- generate APN-permutation function for dimension 6 (m=n=6)
                 - ``'dobbertin'`` -- generate substitution based on Dobbertin's polynomial
                 - ``'dickson'`` -- generate substitution based on Dobbertin's polynomial
@@ -286,16 +286,16 @@ class Sbox(SageObject):
                 - ``'random_substitution'`` -- generate random substitution
                 - ``'welch'`` -- generate substitution based on Welch's polynomial
 
-            - ``T`` -- a string, describe an equivalence transformation to apply, e.g. 
+            - ``T`` -- a string, describe an equivalence transformation to apply, e.g.
                 - ``'A'``    -- affine equivalence
                 - ``'EA'`` -- extended affine equivalence
                 - ``'CCZ'`` -- Carlet-Charpin-Zinoviev equivalence
                 - ``'L'``    -- linear equivalence
-                
+
             - ``G`` -- a polynomial for 'polynomial' method
-        
-        EXAMPLE:: 
-        
+
+        EXAMPLE::
+
             sage: S=Sbox(n=3,m=3)
             sage: S.generate_sbox(method='polynomial',G="g*x^2+x",T='A')
             sage: S # random
@@ -373,17 +373,17 @@ class Sbox(SageObject):
                     kwargs['M2'] = 'random'
 
         self._EA(**kwargs)
-        
+
     def get_item(self, x):
         r"""
         See `Sbox.__call__`.
-        
+
         EXAMPLE::
-            
+
             sage: S = Sbox(n=3,m=3,sbox=[4,5,6,7,0,1,2,3])
             sage: S(7) == S.get_item(7)
             True
-        """ 
+        """
         return self(x)
 
     def get_field(self):
@@ -391,7 +391,7 @@ class Sbox(SageObject):
             Return the finite field
 
         EXAMPLE::
-            
+
             sage: S = Sbox(n=3,m=3,sbox=[4,5,6,7,0,1,2,3])
             sage: S.get_field()
             Finite Field in a of size 2^3
@@ -406,7 +406,7 @@ class Sbox(SageObject):
             Return [M1,M2,M3,V1,V2] from the last EA-equivalence ``F(x) = M1 * G( M2 * x + V2 ) + M3 * x + V1``
 
         EXAMPLE::
-            
+
             sage: S = Sbox(n=3,m=3)
             sage: S.generate_sbox(method="polynomial",G="x^3",T='EA')
             sage: M1,M2,M3,V1,V2 = S.get_linear_functions()
@@ -438,7 +438,7 @@ class Sbox(SageObject):
             Return multiplicative generator of the finite field
 
         EXAMPLE::
-            
+
             sage: S = Sbox(n=3,m=3)
             sage: S.get_mg()^(2^3-1) == 1
             True
@@ -450,7 +450,7 @@ class Sbox(SageObject):
             Return the irreducible polynomial of the field
 
         EXAMPLE::
-            
+
             sage: S = Sbox(n=3,m=3)
             sage: S.get_modulus()
             x^3 + x + 1
@@ -462,7 +462,7 @@ class Sbox(SageObject):
             Return the ring
 
         EXAMPLE::
-            
+
             sage: S = Sbox(n=3,m=3)
             sage: S.get_ring()
             Univariate Polynomial Ring in x over Finite Field in a of size 2^3
@@ -474,7 +474,7 @@ class Sbox(SageObject):
             Return SBox as integer array
 
         EXAMPLE::
-            
+
             sage: S = Sbox(n=3,m=3,sbox=[0,1,5,7,2,3,4,6])
             sage: S.get_sbox() == [0,1,5,7,2,3,4,6]
             True
@@ -498,9 +498,9 @@ class Sbox(SageObject):
     def set_sbox(self,sbox=None):
         r"""
         Set S-box to predefined S-box
-        
+
         INPUT::
-        
+
             - ``sbox`` -- integer array defining transformation
 
         EXAMPLE::
@@ -530,9 +530,9 @@ class Sbox(SageObject):
     def l2m(self,L=None):
         r'''
         Convert a linear function ``L`` to a matrix ``M``
-        
+
         INPUT::
-        
+
             - ``L`` -- linear function to convert
 
         EXAMPLE::
@@ -597,9 +597,9 @@ class Sbox(SageObject):
         Convert internal representation to polynomial with the primitive element.
 
         INPUT::
-        
+
         - ``pol`` -- input polynomial
-        - ``selftest`` -- if "True" (default) then function computes selftesting    
+        - ``selftest`` -- if "True" (default) then function computes selftesting
 
         EXAMPLE::
 
@@ -609,10 +609,10 @@ class Sbox(SageObject):
             True
 
         """
-        
+
         pol  = self._P(pol).mod(self._P("x^{0}+x".format(self._length)))
         selftest = kwargs.get('selftest',True)
-        
+
         if pol is None:
             return "None"
 
@@ -650,7 +650,7 @@ class Sbox(SageObject):
 
         if g_pol == "":
             g_pol = "0"
-            
+
         if selftest == True:
             if self._P(g_pol.replace("g","({0})".format(self._K.multiplicative_generator()))) == pol:
                 return g_pol
@@ -751,7 +751,7 @@ class Sbox(SageObject):
             sage: tr.subs(K.fetch_int(3))
             a^2 + a + 1
         """
-        
+
         if m is None:
             m=1
 
@@ -787,6 +787,7 @@ class Sbox(SageObject):
     PC=cr_PC
     resilient=cr_resilient
     SAC=cr_SAC
+    sparseness=cr_sparseness
     SSI=cr_SSI
 
     # Functions from GSbox.sage

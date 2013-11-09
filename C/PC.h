@@ -18,4 +18,4 @@ AUTHORS:
 
 #include <stdio.h>
 
-int PC(int k,char *f, int FunctionsLength);
+int PropagationCriterion(int k,char *f, int FunctionsLength);

@@ -15,11 +15,11 @@ AUTHORS:
  *  the License, or (at your option) any later version.
  *                  http://www.gnu.org/licenses/
  ****************************************************************************/
- 
+
 #include "PC.h"
 
 // ***
-int PC(int k,char *f, int FunctionsLength)
+int PropagationCriterion(int k,char *f, int FunctionsLength)
 {
 	unsigned int i=0, j=0;
 	long long sum=0;
