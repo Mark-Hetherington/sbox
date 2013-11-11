@@ -14,7 +14,7 @@ AUTHORS:
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
-#***************************************************************************** 
+#*****************************************************************************
 
 load ./Data.sage
 load ./Sbox.sage
@@ -56,6 +56,15 @@ def test_temp(**kargs):
 def test_all_functions(**kargs):
     bits=kargs.get('bits',3)
 
+    S=Sbox(n=bits,m=bits)
+
+    S.set_sbox(AES_sbox)
+    
+    ret = S.algebraic_immunity_sbox(sparseness=True)
+    print "Algebraic immunity\t\t: {0}/{1}/{2}".format(ret[0],ret[1],ret[2])
+
+    return
+
     Sboxes = [
         AES_sbox
     ]
@@ -90,6 +99,6 @@ def test_all_functions(**kargs):
         print "Check system\t\t\t= {0}".format(S.check_system(degree=ret[0]))
         print "~"*40
         print ""
-                
+
     return 0
 

@@ -36,9 +36,5 @@ AUTHORS:
 #endif // __linux__
 
 long long 			sumArray(char *arr, unsigned long long len);
-unsigned long long		factorial(int n);
-unsigned long long		binom(int m, int n);
-int 				twiddle(int *x, int *y, int *z, int *p);
-void 				inittwiddle(int m, int n, int *p);
 
 #endif /* TOOLS_FUNCTIONS_H_ */

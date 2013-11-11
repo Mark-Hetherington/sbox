@@ -1,5 +1,5 @@
 /*
-	Calculates algebraic immunity of the vectorial boolean function given by 
+	Calculates algebraic immunity of the vectorial boolean function given by
 	the component functions
 
 AUTHORS:
@@ -17,8 +17,16 @@ AUTHORS:
  *                  http://www.gnu.org/licenses/
  ****************************************************************************/
 
+#include <m4ri/m4ri.h>
+#include <m4ri/io.h>
 #include <stdio.h>
+#include <gmp.h>
+#include "../C/tools_functions.h"
 
-#include "tools_functions.h"
+struct algebraic_properties {
+    unsigned long long AI;
+    double SP;
+    unsigned long long NE;
+};
 
-int algebraic_immunity(char **Functions, int deg, int FunctionsLength, int SboxBitIn, int SboxBitOut);
+void algebraic_immunity(unsigned long long *sbox, algebraic_properties* AP, unsigned long long n, unsigned long long m, unsigned long long sparseness);

@@ -15,14 +15,16 @@ AUTHORS:
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
-#*****************************************************************************    
+#*****************************************************************************
 
 #clang c++
+#clib m4ri
 #cinclude $SBOX_ROOT/CPP/
-#cfile ./CPP/Cycles.cpp
+#cfile ./CPP/Cycles.cpp ./CPP/AlgebraicImmunity.cpp
 
 import os
 from sage.all import ZZ
+from sage.all import RR
 
 from libcpp.map cimport map as mMap
 from libcpp.vector cimport vector
@@ -35,18 +37,57 @@ ctypedef vector[long long]* pV
 cdef extern from "Cycles.h":
     mMap[long long, pV] findCycles(long long sbox[], long long s)
 
+cdef extern from "AlgebraicImmunity.h":
+    struct algebraic_properties:
+        unsigned long long AI
+        double             SP
+        unsigned long long NE
+    void algebraic_immunity(unsigned long long *sbox, algebraic_properties* AP, unsigned long long n, unsigned long long m, unsigned long long sparseness)
+
+def c_algebraic_immunity_sbox(pSbox,length,SboxBitIn,SboxBitOut,sparseness=False):
+    r"""
+    Return algebraic immunity, that is the maximum degree of a system of equations that describes the S-box
+
+    It is a convenience function and connects cr_algebraic_immunity_sbox() in CSbox
+    with alg_eq_Sbox() in  AlgebraicImmunity.c
+
+    INPUT::
+
+        - ``pSbox``      -- array of integers
+        - ``length``     -- length of array
+        - ``SboxBitIn``  -- number of in-bits ('n')
+        - ``SboxBitOut`` -- number of out-bits ('m')
+        - ``sparseness`` -- if ``True`` (defalut: ``False``), return sparseness of the system
+    """
+    cdef unsigned long long *cSbox = <unsigned long long *>malloc(length*sizeof(unsigned long long))
+    cdef algebraic_properties AP
+
+    for i in xrange(length):
+        cSbox[i] = pSbox[i]
+
+    if sparseness:
+        algebraic_immunity(cSbox,&AP,SboxBitIn,SboxBitOut,1)
+        ret = [ZZ(AP.AI),ZZ(AP.NE),RR(AP.SP)]
+    else:
+        algebraic_immunity(cSbox,&AP,SboxBitIn,SboxBitOut,0)
+        ret = [ZZ(AP.AI),ZZ(AP.NE)]
+
+    free(cSbox)
+
+    return ret
+
 def cpp_cycles(pSbox,length):
     r"""
     Find chains and cycles in an array.
 
-    It is a convenience function and connects cr_cycles() in CSbox with 
+    It is a convenience function and connects cr_cycles() in CSbox with
     findCycles() in Cycles.cpp
-    
+
     INPUT::
 
         - ``pSbox`` -- array of integers
         - ``length`` -- length of array
-        
+
     """
     cdef mMap[long long, pV] cycles
     cdef long long *cSbox = <long long *>malloc(length*sizeof(long long))
@@ -68,4 +109,4 @@ def cpp_cycles(pSbox,length):
 
     ret.sort(key=lambda c: len(c))
 
-    return ret 
+    return ret

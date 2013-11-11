@@ -41,6 +41,7 @@ def cr_algebraic_immunity_sbox(self,**kwargs):
     INPUT::
 
         - ``sparseness`` -- if ``True`` (default: False) additional return sparseness of the system of equations (and sparseness)
+        - ``digits``     -- precision (default: 3) of the return value
 
     EXAMPLE::
 
@@ -54,15 +55,12 @@ def cr_algebraic_immunity_sbox(self,**kwargs):
         sage: S.algebraic_immunity_sbox(sparseness=True)
         [2, 14, 0.687]
     """
-    sparseness = kwargs.get('sparseness',False)
 
-    [deg,neq] = c_algebraic_immunity_sbox(self._S,self._length,self._n,self._m)
-
-    if sparseness:
-        if self._system is None or len(self._system) != neq:
-            self._system = self.create_system(degree=deg)
-        return [deg,neq,self.sparseness(system=self._system)]
+    if kwargs.get('sparseness',False):
+        [deg,neq,sp] = c_algebraic_immunity_sbox(self._S,self._length,self._n,self._m,True)
+        return [deg,neq,sp.n(digits=kwargs.get('digits',3))]
     else:
+        [deg,neq] = c_algebraic_immunity_sbox(self._S,self._length,self._n,self._m,False)
         return [deg,neq]
 
 def cr_is_balanced(self):
@@ -876,7 +874,7 @@ def cr_sparseness(self,system=None,digits=3):
     INPUT::
 
         ``system`` -- compute sparseness for the given system, otherwise call the ``create_system`` function
-        ``digits`` -- precision of the return value
+        ``digits`` -- precision (default: 3) of the return value
 
     EXAMPLE::
 
