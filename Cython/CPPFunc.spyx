@@ -42,7 +42,7 @@ cdef extern from "AlgebraicImmunity.h":
         unsigned long long AI
         double             SP
         unsigned long long NE
-    void algebraic_immunity(unsigned long long *sbox, algebraic_properties* AP, unsigned long long n, unsigned long long m, unsigned long long sparseness)
+    int algebraic_immunity(unsigned long long *sbox, algebraic_properties* AP, unsigned long long n, unsigned long long m, unsigned long long sparseness)
 
 def c_algebraic_immunity_sbox(pSbox,length,SboxBitIn,SboxBitOut,sparseness=False):
     r"""
@@ -66,11 +66,15 @@ def c_algebraic_immunity_sbox(pSbox,length,SboxBitIn,SboxBitOut,sparseness=False
         cSbox[i] = pSbox[i]
 
     if sparseness:
-        algebraic_immunity(cSbox,&AP,SboxBitIn,SboxBitOut,1)
-        ret = [ZZ(AP.AI),ZZ(AP.NE),RR(AP.SP)]
+        if algebraic_immunity(cSbox,&AP,SboxBitIn,SboxBitOut,1):
+            ret = [None, None, None]
+        else:
+            ret = [ZZ(AP.AI),ZZ(AP.NE),RR(AP.SP)]
     else:
-        algebraic_immunity(cSbox,&AP,SboxBitIn,SboxBitOut,0)
-        ret = [ZZ(AP.AI),ZZ(AP.NE)]
+        if algebraic_immunity(cSbox,&AP,SboxBitIn,SboxBitOut,0):
+            ret = [None, None, None]
+        else:
+            ret = [ZZ(AP.AI),ZZ(AP.NE)]
 
     free(cSbox)
 

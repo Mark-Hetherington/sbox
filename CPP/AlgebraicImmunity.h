@@ -29,4 +29,4 @@ struct algebraic_properties {
     unsigned long long NE;
 };
 
-void algebraic_immunity(unsigned long long *sbox, algebraic_properties* AP, unsigned long long n, unsigned long long m, unsigned long long sparseness);
+int algebraic_immunity(unsigned long long *sbox, algebraic_properties* AP, unsigned long long n, unsigned long long m, unsigned long long sparseness);

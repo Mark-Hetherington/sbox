@@ -53,7 +53,11 @@ def cr_algebraic_immunity_sbox(self,**kwargs):
         sage: S=Sbox(n=3,m=3)
         sage: S.generate_sbox(method='polynomial',G="g*x^3+1")
         sage: S.algebraic_immunity_sbox(sparseness=True)
-        [2, 14, 0.687]
+        [2, 14, 0.795]
+
+    NOTE::
+
+        Return "sparseness" of reduced row echelon form. There is no guarantee that this value is the minimum one.
     """
 
     if kwargs.get('sparseness',False):

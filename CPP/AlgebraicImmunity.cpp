@@ -20,30 +20,30 @@ AUTHORS:
 #include "AlgebraicImmunity.h"
 
 unsigned long int  binomial(int n, int k);
-int                twiddle(int *x, int *y, int *z, int *p);
-void               inittwiddle(int m, int n, int *p);
+void init_comb(unsigned long long* state, unsigned long long state_length, unsigned long long k);
+unsigned long long next_comb(unsigned long long* state, unsigned long long n, unsigned long long k);
 
 // ***
-void algebraic_immunity(unsigned long long *sbox, algebraic_properties* AP, unsigned long long n, unsigned long long m, unsigned long long sparseness)
+int algebraic_immunity(unsigned long long *sbox, algebraic_properties* AP, unsigned long long n, unsigned long long m, unsigned long long sparseness)
 {
     unsigned long int cols = 0;
-    unsigned long long rows = 1<<n, AI = 0, d = 0, c = 0, N = m+n, v = 0, *SBOX = NULL, column;
+    unsigned long long rows = 1<<n, AI = 0, d = 0, c = 0, N = m+n, v = 0, *SBOX = NULL, column = 0, *state = NULL, mask = 0;
     mzd_t *A = NULL, *X = NULL, *B = NULL;
     mzp_t *P = NULL, *Q = NULL;
     rci_t i = 0, j = 0, rank = 0;
-    int x, y, z, *p = NULL, *b = NULL; // additional variables for "twiddle" (generation all combinations)
 
-    p = (int*)calloc(N+2,sizeof(int)); // buffer for generating all combinationss
-    b = (int*)calloc(N,sizeof(int));   // current vector for combinations
+    if(n+m > 64)
+        return 1;
 
-    SBOX = (unsigned long long *)calloc(rows,sizeof(unsigned long long));   // current vector for combinations
+    state = (unsigned long long*)calloc(n,sizeof(unsigned long long)); // the state for combinations
+    SBOX = (unsigned long long *)calloc(rows,sizeof(unsigned long long)); // current vector for combinations
 
     for(i=0;i<rows;i++)
     {
         SBOX[i] = (i<<m)^sbox[i]; // "<<m" because the bit length of sbox[i] is "m"
     }
 
-    for(AI=1;AI<n;AI++)
+    for(AI=0;AI<n;AI++)
     {
         cols = 0;
 
@@ -56,56 +56,27 @@ void algebraic_immunity(unsigned long long *sbox, algebraic_properties* AP, unsi
         P = mzp_init(rows);
         Q = mzp_init(cols);
 
-        for(j=0;j<rows;j++)
+        for(d = AI, column = 0; d != 0; d--)
         {
-            mzd_write_bit(A,j,0,1);
-        }
+            init_comb(state,n,d);
 
-        for(d=AI,column=1;d != 0;d--)
-        {
-            inittwiddle(d, N, p);
+            mask = next_comb(state,N,d);
 
-            for(i = 0; i != N-d; i++)
+            while(mask != 0)
             {
-                b[i] = 0;
-            }
-
-            while(i != N)
-            {
-                b[i++] = 1;
-            }
-
-            for(j=0;j<rows;j++)
-            {
-                v = 1;
-                for(i = 0; i != N; i++)
-                    if (b[i])
-                    {
-                        v &= GET_BIT(SBOX[j],i);
-                    }
-               mzd_write_bit(A,j,column,v);
-            }
-
-            column++;
-
-            while(!twiddle(&x, &y, &z, p))
-            {
-                b[x] = 1;
-                b[y] = 0;
-
                 for(j=0;j<rows;j++)
                 {
-                    v = 1;
-                    for(i = 0; i != N; i++)
-                        if (b[i])
-                        {
-                            v &= GET_BIT(SBOX[j],i);
-                        }
-                   mzd_write_bit(A,j,column,v);
+                   mzd_write_bit(A,j,column,__builtin_popcountll(SBOX[j]&mask));
                 }
+                mask = next_comb(state,N,d);
                 column++;
             } // while
         } // d
+        
+        for(j=0;j<rows;j++)
+        {
+            mzd_write_bit(A,j,column,1);
+        }
 
         B = mzd_copy(NULL, A);
         rank = mzd_ple(A, P, Q, 0);
@@ -123,7 +94,7 @@ void algebraic_immunity(unsigned long long *sbox, algebraic_properties* AP, unsi
             {
                 X = mzd_kernel_left_pluq(B,0);
                 AP->SP = 1 - mzd_density(X,0);
-
+                
                 mzd_free(X);
             }
 
@@ -140,23 +111,23 @@ void algebraic_immunity(unsigned long long *sbox, algebraic_properties* AP, unsi
         {
             perror(">>> You have found a bug in 'algebraic_immunity' <<<");
 
+            if (state)
+                free(state);
+
             if (SBOX)
                 free(SBOX);
-            if (p)
-                free(p);
-            if (b)
-                free(b);
 
-            return;
+            return 0;
         }
     }
 
+    if (state)
+    	free(state);
+
     if (SBOX)
         free(SBOX);
-    if (p)
-        free(p);
-    if (b)
-        free(b);
+
+    return 0;
 }
 // ***
 void factorial(mpz_t result, unsigned long input) {
@@ -194,83 +165,76 @@ unsigned long int binomial(int n, int k)
 	return ret;
 }
 // ***
-int twiddle(int *x, int *y, int *z, int *p)
+void init_comb(unsigned long long* state, unsigned long long state_length, unsigned long long k)
 {
-	register int i, j, k;
-	j = 1;
+	unsigned long long i = 0;
 
-	while(p[j] <= 0)
-		j++;
+	memset(state,0,state_length*sizeof(unsigned long long));
 
-	if(p[j-1] == 0)
+	for(i=0;i<k;i++)
 	{
-		for(i = j-1; i != 1; i--)
-			p[i] = -1;
-
-		p[j] = 0;
-		*x = *z = 0;
-		p[1] = 1;
-		*y = j-1;
+		state[i] = 1<<i;
 	}
-	else
+}
+// ***
+// n is limiten by 63
+unsigned long long next_comb(unsigned long long* state, unsigned long long n, unsigned long long k)
+{
+	unsigned long long i = 0, ret = 0, j = 0, skip = 0;
+
+	if( n > 63 )
 	{
-		if(j > 1)
-			p[j-1] = 0;
-		do
+		return 0;
+	}
+
+	ret = 0;
+	for(i=0;i<k;i++)
+	{
+		ret ^= state[i];
+	}
+	if(ret == 0)
+		return 0;
+
+	for(i=k-1;i<k;i--)
+	{
+		if (!skip)
+			state[i] <<= 1;
+
+		if ( (state[i] ^ ((unsigned long long)1<<(n-(k-1-i))) ) == 0 )
 		{
-			j++;
-		}
-		while(p[j] > 0);
+			if(i == 0)
+			{
+				if ( (state[i] ^ ((unsigned long long)1<<(n-(k-1-i)))) == 0 )
+				{
+					memset(state,0,k*sizeof(unsigned long long));
+					return ret;
+				}
+				else
+				{
+					state[i] <<= 1;
 
-		k = j-1;
-		i = j;
-
-		while(p[i] == 0)
-			p[i++] = -1;
-
-		if(p[i] == -1)
-		{
-			p[i] = p[k];
-			*z = p[k]-1;
-			*x = i-1;
-			*y = k-1;
-			p[k] = -1;
+					for(j=1;j<k;j++)
+					{
+						state[j] = state[j-1] << 1;
+					}
+				}
+			}
+			else
+			{
+				state[i-1] <<= 1;
+				for(j=i;j<k;j++)
+				{
+					state[j] = state[j-1] << 1;
+				}
+				skip = 1;
+			}
 		}
 		else
 		{
-			if(i == p[0])
-				return(1);
-			else
-			{
-				p[j] = p[i];
-				*z = p[i]-1;
-				p[i] = 0;
-				*x = j-1;
-				*y = i-1;
-			}
+			break;
 		}
 	}
 
-	return(0);
-}
-// ***
-void inittwiddle(int m, int n, int *p)
-{
-	int i;
-	p[0] = n+1;
-
-	for(i = 1; i != n-m+1; i++)
-		p[i] = 0;
-
-	while(i != n+1)
-	{
-		p[i] = i+m-n;
-		i++;
-	}
-
-	p[n+1] = -2;
-
-	if(m == 0)
-		p[1] = 1;
+	return ret;
 }
 // ***
