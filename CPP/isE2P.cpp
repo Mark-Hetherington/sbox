@@ -10,6 +10,7 @@
 map<unsigned long long, vector< mzd_t* > >		findSigmas(unsigned long long*, unsigned long long);
 // bool 									matrixCheck(Mat<GF2>, unsigned long long, map<unsigned long long, Mat<GF2> >, unsigned long long);
 // void									print_matrix(Mat<GF2>, string, unsigned long long, unsigned long long);
+void									print_Sigmas(map<unsigned long long, vector< mzd_t* > >);
 // Mat<GF2> 								tryCombine(Mat<GF2>, vector<Mat<GF2> >*, unsigned long long);
 // void									updatedMat(int* progressTracker, unsigned long long column, Mat<GF2>& L, unsigned long long n);
 
@@ -50,21 +51,18 @@ int is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long lo
 
 	Sigmas = findSigmas(sbox, n);
 
-	// //Print sbox
-	// cout << "Sbox = [";
-	// for(i = 0; i < length; i++)
-	// {
-	// 	cout << Sbox[i];
-	// 	if(i+1 != length)
-	// 		cout << ",";
-	// }
-	// cout << "]" << endl;
+	//Print sbox
+	printf("sbox:\n");
+	for(i = 0; i < length; i++)
+	{
+		printf("%02X ", sbox[i]);
+		if((i+1)%8 == 0)
+			printf("\n");
+	}
+	printf("\n");
 
-	// //Print sigmas
-	// // for(i = 0; i < n<<1; i++)
-	// // {
-	// // 	cout << "Sigma" << "[" << i << "]"<< " = " << sigmas[i] << endl;
-	// // }
+	// Print sigmas
+	print_Sigmas(Sigmas);
 
 	// for(i = 0; i < n<<1; i++)
 	// {
@@ -394,7 +392,7 @@ map<unsigned long long, vector< mzd_t* > > findSigmas(unsigned long long *F, uns
 // 	return true;
 // }
 
-// // Print the matrix.
+// // Print the given matrix.
 // void print_matrix(Mat<GF2> L, string str, unsigned long long n, unsigned long long m)
 // {
 // 	unsigned long long i = 0, j = 0;
@@ -410,6 +408,35 @@ map<unsigned long long, vector< mzd_t* > > findSigmas(unsigned long long *F, uns
 // 		cout << endl;
 // 	}
 // }
+
+// Print Sigmas
+void print_Sigmas(map<unsigned long long, vector< mzd_t* > > Sigmas)
+{
+	unsigned long long i = 0, j = 0, s = 0, m = 0;
+
+	cout << "Sigmas:" << endl;
+
+	for (s = 0; s < Sigmas.size(); s++)
+	{
+		cout << "Sigmas[" << s << "] (" << Sigmas[s].size() << ")" << " = [";
+		for (m = 0; m < Sigmas[s].size(); m++)
+		{
+			cout << "[";
+			for (i = 0; i < Sigmas[s][m]->nrows; i++)
+			{
+				for(j = 0; j < Sigmas[s][m]->ncols; j++)
+				{
+					cout << mzd_read_bit(Sigmas[s][m],i,j) << " ";
+				}
+			}
+			if (m != Sigmas[s].size()-1)
+				cout << "],";
+			else
+				cout << "]";
+		}
+		cout << "]" << endl;
+	}
+}
 
 // /*
 //  * Updates the column of the matrix
