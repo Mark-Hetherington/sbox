@@ -776,6 +776,7 @@ class Sbox(SageObject):
     is_balanced=cr_is_balanced
     is_bijection=cr_is_bijection
     is_equivalent_to_permutation=cr_is_equivalent_to_permutation
+    is_equivalent_to_permutation_new=cr_is_equivalent_to_permutation_new
     MDT=cr_MDT
     maximal_difference_probability=cr_maximal_difference_probability
     maximal_linear_bias=cr_maximal_linear_bias

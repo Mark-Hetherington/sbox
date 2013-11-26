@@ -1,5 +1,5 @@
 /*
-Find cycles of the given substitution
+
 
 AUTHORS:
 
@@ -18,13 +18,18 @@ AUTHORS:
  *                  http://www.gnu.org/licenses/
  ****************************************************************************/
 
-#include <cstdlib>
 #include <iostream>
 #include <vector>
 #include <map>
-#include <math.h>
+#include <stdio.h>
+#include <algorithm>
+#include <sstream>
+#include <time.h>
+
+#include <m4ri/m4ri.h>
+//#include <m4ri/io.h>
 
 using namespace std;
 
-map<long long, vector<long long>*> findCycles(long long[],long long);
-bool joinCycle (vector<long long>*,vector<long long>*);
+int test();
+int is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long long n);

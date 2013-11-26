@@ -109,6 +109,12 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
     if not isinstance(foundL,list):
         raise TypeError("Ls must be in list")
 
+    if self._S is not None:
+        S = self._S[:]
+        polynomial = self._polynomial
+    else:
+        S = None
+
     Sigma = [[] for _ in xrange(self._m+self._n)]
 
     self.generate_sbox(method='polynomial',G=F)
@@ -212,13 +218,77 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
         if j == -1:
             break
 
+    if S is not None:
+        self._polynomial = polynomial
+        self._S = S[:]
+
     if full is True:
         return foundM
     elif stop == 0:
-        return M
-        return None
+        return M    # Which value is correct? 
+        return None # 
     else:
         return M
+
+def cr_is_equivalent_to_permutation_new(self,**kwargs):
+    r'''
+    Find equivalent permutation to the function ``F``. The algorithm is discribed in
+    [DILL09] and [COR12].
+
+    INPUT::
+        
+    - ``F`` -- string (default: None), input polynomial for checking
+    - ``debug`` -- boolean (default: False), input polynomial for checking
+    - ``foundL`` -- list (default: []), a list of linear functions 
+    - ``full`` -- boolean (default: False), in case of ``True`` return all possible linear matrices which give permutations
+    - ``L`` -- matrix (default: zero matrix), initial value of the state (matrix)
+
+    EXAMPLE::
+
+        sage: S=Sbox(n=6,m=6)
+        sage: F="g*x^3+g^5*x^10+g^4*x^24"
+        sage: M=S.is_equivalent_to_permutation(F)
+        sage: S.generate_sbox(method="polynomial",G=F,T="CCZ",M=M)
+
+        sage: S.is_bijection()
+        True
+        sage: S.APN()
+        True
+
+    REFERENCES::
+
+    [COR12] E. Cornet. The Dillon-Wolfe Function for Cryptography. Master thesis, Mathematical Sciences, 2012. http://goo.gl/ECwcfh
+    [DILL09] J.F. Dillon. APN polynomials: An update. Slides from a talk at the International Conference
+            on Finite Fields and their Applications, july 2009. at the University College in Dublin. http://goo.gl/5pMHU
+
+    '''
+    F       = kwargs.get('F',None)
+    debug   = kwargs.get('debug',False)
+    foundL  = kwargs.get('foundL',[])
+    full    = kwargs.get('full',False)
+    L       = kwargs.get('L',matrix(GF(2),self._n,0))
+
+    if F is None:
+        raise TypeError("Function 'F' must be presented")
+
+    if not isinstance(foundL,list):
+        raise TypeError("Ls must be in list")
+
+    if self._S is not None:
+        polynomial = self._polynomial
+        S = self._S[:]
+    else:
+        S = None
+
+    self.generate_sbox(method='polynomial',G=F)
+
+    cpp_is_equivalent_to_permutation(self._S,self._length, self._n)
+
+    if S is not None:
+        self._polynomial = polynomial
+        self._S = S[:]
+
+    return random_matrix(GF(2),self._n,2*self._n)
 
 def cr_check_polynomial(self):
     r"""

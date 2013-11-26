@@ -100,9 +100,14 @@ def test_equivalence(**kargs):
 
     F="g*x^3+g^5*x^10+g^4*x^24"
 
-    M=S.is_equivalent_to_permutation(F=F)
+    #M1 = S.is_equivalent_to_permutation(F=F)
+    M2 = S.is_equivalent_to_permutation_new(F=F)
 
-    print "M:\n{0}".format(M)
+    # print "M1:\n{0}".format(M1)
+    # print "M2:\n{0}".format(M2)
+    # print ">>> {0} <<<".format(M1 == M2)
+
+    return
 
     S.generate_sbox(method="polynomial",G=F,T="CCZ",M=M)
 
@@ -133,4 +138,4 @@ def test_equivalence(**kargs):
     print "~"*40
     print ""
                 
-    return 0
+    return

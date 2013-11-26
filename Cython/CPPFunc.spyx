@@ -19,7 +19,7 @@ AUTHORS:
 
 #clang c++
 #cinclude $SBOX_ROOT/CPP/
-#cfile ./CPP/Cycles.cpp
+#cfile ./CPP/Cycles.cpp ./CPP/isE2P.cpp
 
 import os
 from sage.all import ZZ
@@ -34,6 +34,9 @@ ctypedef vector[long long]* pV
 
 cdef extern from "Cycles.h":
     mMap[long long, pV] findCycles(long long sbox[], long long s)
+
+cdef extern from "isE2P.h":
+    int test()
 
 def cpp_cycles(pSbox,length):
     r"""
@@ -68,4 +71,41 @@ def cpp_cycles(pSbox,length):
 
     ret.sort(key=lambda c: len(c))
 
-    return ret 
+    return ret
+
+def cpp_is_equivalent_to_permutation(pSbox,length,n):
+    r""" 
+    Find matrix or matrices equivalent to a permutation.
+
+    It is a convenience function and connects cr_is_equivalent_to_permutation_new() in CSbox with 
+    isE2P() in isE2P.cpp
+
+    INPUT::
+
+        - ``pSbox``  -- array of integers
+        - ``length`` -- length of array
+        - ``n``      -- length of input bits
+    """
+    test()
+    return
+    # cdef mMap[long long, pV] cycles
+    # cdef long long *cSbox = <long long *>malloc(length*sizeof(long long))
+
+    # for i in xrange(length):
+    #     cSbox[i] = pSbox[i]
+
+    # cycles = findMatrix(cSbox, length)
+
+    # free(cSbox)
+
+    # ret = []
+
+    # for i in xrange (1,cycles.size()+1):
+    #     ret.append([])
+    #     if not cycles[i].empty():
+    #         for j in xrange (cycles[i].size()):
+    #             ret[i-1].append(ZZ(cycles[i].at(j)))
+
+    # ret.sort(key=lambda c: len(c))
+
+    # return ret
