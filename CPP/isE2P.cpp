@@ -6,11 +6,11 @@
 #include "isE2P.h"
 
 // void									clearColumn(unsigned long long column, Mat<GF2>& L, unsigned long long n);
-// Mat<GF2> 								findMatrix(map<unsigned long long, Mat<GF2> >, unsigned long long, bool);
+mzd_t* 											findMatrix(map<unsigned long long, vector< mzd_t* > >, unsigned long long, bool);
 map<unsigned long long, vector< mzd_t* > >		findSigmas(unsigned long long*, unsigned long long);
 // bool 									matrixCheck(Mat<GF2>, unsigned long long, map<unsigned long long, Mat<GF2> >, unsigned long long);
-// void									print_matrix(Mat<GF2>, string, unsigned long long, unsigned long long);
-void									print_Sigmas(map<unsigned long long, vector< mzd_t* > >);
+void											print_matrix(mzd_t const *, string);
+void											print_Sigmas(map<unsigned long long, vector< mzd_t* > >);
 // Mat<GF2> 								tryCombine(Mat<GF2>, vector<Mat<GF2> >*, unsigned long long);
 // void									updatedMat(int* progressTracker, unsigned long long column, Mat<GF2>& L, unsigned long long n);
 
@@ -51,7 +51,7 @@ int is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long lo
 
 	Sigmas = findSigmas(sbox, n);
 
-	//Print sbox
+	// Print sbox
 	printf("sbox:\n");
 	for(i = 0; i < length; i++)
 	{
@@ -62,26 +62,23 @@ int is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long lo
 	printf("\n");
 
 	// Print sigmas
-	print_Sigmas(Sigmas);
+	//print_Sigmas(Sigmas);
+	printf("Sigmas:\n");
+	for(i = 0; i < Sigmas.size(); i++)
+	{
+		printf("Sigmas[%lld]: %lld\n",i,Sigmas[i].size());
+	}
+	printf("\n");	
 
-	// for(i = 0; i < n<<1; i++)
-	// {
-	// 	cout << "Sigma" << "[" << i << "]"<< " = " << sigmas[i].NumCols() << endl;
-	// }
+	M = findMatrix(Sigmas,n,false);
 
-	// cout << endl;
-	// cout << "Find matrix:" << endl;
-	// cout << endl;
+	// Print the matrix
+	if(!mzd_is_zero(M))
+	{
+		print_matrix(M,"M");
+	}
 
-	// M = findMatrix(sigmas,n,false);
-
-	// // Print the matrix.
-	// if(!IsZero(M))
-	// {
-	// 	print_matrix(M,"M",2*n,2*n);
-	// }
-
-	// M.kill();
+	mzd_free(M);
 
 	return 1;
 }
@@ -97,67 +94,55 @@ int is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long lo
 // 		L[i][column] = 0;
 // }
 
-// Mat<GF2> findMatrix(map<unsigned long long, Mat<GF2> > sigmas, unsigned long long n, bool full = false)
-// {
-// 	// Variables for testing performance
-// 	clock_t time_updatedMat[3] = {0,0,0}, time_gauss[3] = {0,0,0}, time_matrixCheck[3] = {0,0,0}, time_find[3] = {0,0,0}, time_tryCombine[3] = {0,0,0};
+mzd_t* findMatrix(map<unsigned long long, vector< mzd_t* > > sigmas, unsigned long long n, bool full = false)
+{
+	// Variables for testing performance
+	clock_t time_updatedMat[3] = {0,0,0}, time_gauss[3] = {0,0,0}, time_matrixCheck[3] = {0,0,0}, time_find[3] = {0,0,0}, time_tryCombine[3] = {0,0,0};
 
-// 	// Initialises the empty 2D array (matrix) L
-// 	Mat<GF2> L, M, T;
-// 	vector< Mat<GF2> > foundM;
+	//  The working matrices
+	mzd_t *L, *M, *T;
 
-// 	T.SetDims(n,2*n);
-// 	L.SetDims(n,2*n);
-// 	M.SetDims(2*n,2*n);
+	// The found matrices will be stored here
+	vector< mzd_t* > foundM, foundL;
 
-// 	// for (int i = 0; i < (int)n; i++){
-// 	// 	for(int j = 0; j < (int)(2*(n)); j++){
-// 	// 		cout << L[i][j] << " ";
-// 	// 	}
-// 	// 	cout << endl;
-// 	// }
+	// Additional variables
+	unsigned long long i = 0, rank = 0, column = 0;
 
-// 	// The matrices we find will be stored here.
-// 	vector<Mat<GF2> >* foundMatrices = new vector< Mat<GF2> >();
+	// The progress tracker and the tracker of max values 
+	unsigned long long *progressTracker = NULL, *maxValueTracker = NULL;
 
-// 	int largestPossible = (1 << n) - 1;
+	// Initialises the empty matrices
+	T = mzd_init(n, n<<1);
+	L = mzd_init(n, n<<1);
+	M = mzd_init(n<<1, n<<1);
 
-// 	// We will generate our columns here, in decimal form.
-// 	int progressTracker[2*n];
+	// We will generate our columns here, in decimal form
+	progressTracker = (unsigned long long*)calloc(n<<1,sizeof(unsigned long long));
 
-// 	// Iterators.
-// 	unsigned long long i = 0;
+	// Defines the highest achieveable value for a column. This is 2^(n-1) for most
+	// except the identity matrix part.
+	maxValueTracker = (unsigned long long*)calloc(n<<1,sizeof(unsigned long long));
 
-// 	// Matrix rank.
-// 	unsigned long long rank = 0;
+	for(i = 0; i < n<<1; i++)
+	{
+		if(i < n)
+		{
+			maxValueTracker[i] = (1 << (i+1)) - 1;
+		}
+		else
+		{
+			maxValueTracker[i] = (1 << n) - 1;
+		}
+	}
 
-// 	for(i = 0; i < 2*n; i++)
-// 	{
-// 		progressTracker[i] = 0;
-// 	}
+	// Several prints for debugging
+	// print_matrix(L,"L");
 
-// 	// Defines the highest achieveable value for a column. This is 2^(n-1) for most
-// 	// except the identity matrix part.
-// 	int maxValueTracker[2*n];
+	// for(i = 0; i < n<<1; i++)
+	// 	printf("progressTracker[%lld] = %lld\n",i,progressTracker[i]);
 
-// 	for(i = 0; i < 2*n; i++)
-// 	{
-// 		if(i < n)
-// 		{
-// 			maxValueTracker[i] = (1 << (i+1)) - 1;
-// 		}
-// 		else
-// 		{
-// 			maxValueTracker[i] = largestPossible;
-// 		}
-// 	}
-
-// 	// for(int i = 0; i < (int)(2*n); i++){
-// 	// 	printf("maxValueTracker[%d] = %d\n",i,maxValueTracker[i]);
-// 	// }
-
-// 	// The current column of the matrix.
-// 	unsigned long long column = 0;
+	// for(i = 0; i < n<<1; i++)
+	// 	printf("maxValueTracker[%lld] = %lld\n",i,maxValueTracker[i]);
 
 // 	while(true)
 // 	{
@@ -291,22 +276,31 @@ int is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long lo
 // 		}
 // 	}
 
-// 	printf("Done. Number of linear functions is %ld\n", foundMatrices->size());
-// 	printf("Number of matriceis is %ld\n", foundM.size());
+	printf("Done. Number of linear functions is %ld\n", foundL.size());
+	printf("Number of matriceis is %ld\n", foundM.size());
 
 // 	T.kill();
 // 	L.kill();
 // 	M.kill();
 
-// 	return mat_GF2();
-// }
+	if(progressTracker)
+		free(progressTracker);
+	if(maxValueTracker)
+		free(maxValueTracker);
+
+	mzd_free(T);
+	mzd_free(L);
+	mzd_free(M);
+
+ 	return mzd_init(n<<1, n<<1);;
+}
 
 /*
- * Returns the map of sigmas
+ * Returns the map of Sigmas
  */
 map<unsigned long long, vector< mzd_t* > > findSigmas(unsigned long long *F, unsigned long long n)
 {
-	map<unsigned long long, vector< mzd_t* > > sigmas;
+	map<unsigned long long, vector< mzd_t* > > Sigmas;
 
 	unsigned long long xy = 0, Fxy = 0, i = 0, j = 0, k = 0, nbits = 0;
 	mzd_t* sigma;
@@ -336,29 +330,27 @@ map<unsigned long long, vector< mzd_t* > > findSigmas(unsigned long long *F, uns
 				}
 			}
 
-			// printf("================\n");
-			// printf(" xy = %02llX\n", xy);
-			// printf("Fxy = %02llX\n", Fxy);
-			// cout << sigma << endl;
-			// for(k = 0; k < 2*n; k++)
+			// if (nbits == 2)
 			// {
-			// 	printf("%ld\n",rep(sigma[k][0]));
+			// 	printf("================\n");
+			// 	printf(" xy = %02llX\n", xy);
+			// 	printf("Fxy = %02llX\n", Fxy);
+			// 	mzd_print(sigma);
+			// 	printf("nbits = %lld\n", nbits);
+			// 	printf("================\n");
 			// }
-			// printf("nbits = %lld\n", nbits);
-			// printf("================\n");
 
 			// Add only unique vectors
-			if (find(sigmas[nbits].begin(), sigmas[nbits].end(), sigma) == sigmas[nbits].end())
+			if (find(Sigmas[nbits].begin(), Sigmas[nbits].end(), sigma) == Sigmas[nbits].end())
 			{
-				sigmas[nbits].push_back(sigma);
+				Sigmas[nbits].push_back(mzd_copy(NULL,sigma));
 			}
 		}
-
 	}
 
 	mzd_free(sigma);
 
-	return sigmas;
+	return Sigmas;
 }
 
 // /**
@@ -392,22 +384,22 @@ map<unsigned long long, vector< mzd_t* > > findSigmas(unsigned long long *F, uns
 // 	return true;
 // }
 
-// // Print the given matrix.
-// void print_matrix(Mat<GF2> L, string str, unsigned long long n, unsigned long long m)
-// {
-// 	unsigned long long i = 0, j = 0;
+// Print the given matrix.
+void print_matrix(mzd_t const *L, string str)
+{
+	unsigned long long i = 0, j = 0;
 
-// 	cout << str << ":" << endl;
+	cout << str << ":" << endl;
 
-// 	for (i = 0; i < n; i++)
-// 	{
-// 		for(j = 0; j < m; j++)
-// 		{
-// 			cout << L[i][j] << " ";
-// 		}
-// 		cout << endl;
-// 	}
-// }
+	for (i = 0; i < L->nrows; i++)
+	{
+		for(j = 0; j < L->ncols; j++)
+		{
+			cout << mzd_read_bit(L,i,j) << " ";
+		}
+		cout << endl;
+	}
+}
 
 // Print Sigmas
 void print_Sigmas(map<unsigned long long, vector< mzd_t* > > Sigmas)

@@ -27,7 +27,6 @@ AUTHORS:
 #include <time.h>
 
 #include <m4ri/m4ri.h>
-//#include <m4ri/io.h>
 
 using namespace std;
 
