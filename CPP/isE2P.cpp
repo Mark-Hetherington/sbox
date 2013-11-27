@@ -6,18 +6,19 @@
 #include "isE2P.h"
 
 void										clearColumn(mzd_t *, unsigned long long column);
-vector< mzd_t* >							findMatrix(map<unsigned long long, vector< mzd_t* > >, unsigned long long, unsigned long long);
+vector< mzd_t* >							findMatrix(map<unsigned long long, vector< mzd_t* > >, unsigned long long, vector< mzd_t* >, unsigned long long *, unsigned long long);
 map<unsigned long long, vector< mzd_t* > >	findSigmas(unsigned long long*, unsigned long long);
-bool 										matrixCheck(mzd_t const *, unsigned long long, map<unsigned long long, vector< mzd_t* > >);
-void										print_matrix(mzd_t const *, string);
+bool 										matrixCheck(const mzd_t*, unsigned long long, map<unsigned long long, vector< mzd_t* > >);
+void										print_matrix(const mzd_t*, string);
 void										print_Sigmas(map<unsigned long long, vector< mzd_t* > >);
-mzd_t* 										tryCombine(mzd_t const *, vector< mzd_t* >);
+mzd_t* 										tryCombine(const mzd_t*, vector< mzd_t* >);
+template<typename VectorOrMap> int 			unique(VectorOrMap list, mzd_t* el);
 void										updatedMat(unsigned long long *, unsigned long long, mzd_t *);
 
 /*
  * The main function. Interface between Cython and C++.
  */
-vector< mzd_t* > is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long long n, unsigned long long full = 0)
+vector< mzd_t* > is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long long n, vector< mzd_t* > foundL, unsigned long long *progressTracker, unsigned long long full = 0)
 {
 	vector< mzd_t* > M;
 	map<unsigned long long, vector< mzd_t* > > Sigmas;
@@ -54,7 +55,7 @@ vector< mzd_t* > is_E2P(unsigned long long *sbox, unsigned long long length, uns
 	// }
 	// printf("\n");	
 
-	M = findMatrix(Sigmas,n,full);
+	M = findMatrix(Sigmas,n,foundL,progressTracker,full);
 
 	// Print the matrix
 	// if(!mzd_is_zero(M))
@@ -86,7 +87,7 @@ void clearColumn(mzd_t *L, unsigned long long column)
 		mzd_write_bit(L,i,column,0);
 }
 
-vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, unsigned long long n, unsigned long long full = 0)
+vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, unsigned long long n, vector< mzd_t* > foundL, unsigned long long *progressTracker, unsigned long long full = 0)
 {
 	// Variables for testing performance
 	//clock_t time_updatedMat[3] = {0,0,0}, time_gauss[3] = {0,0,0}, time_matrixCheck[3] = {0,0,0}, time_find[3] = {0,0,0}, time_tryCombine[3] = {0,0,0};
@@ -95,21 +96,18 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 	mzd_t *L, *M, *T;
 
 	// The found matrices will be stored here
-	vector< mzd_t* > foundM, foundL;
+	vector< mzd_t* > foundM;
 
 	// Additional variables
 	unsigned long long i = 0, rank = 0, column = 0;
 
 	// The progress tracker and the tracker of max values 
-	unsigned long long *progressTracker = NULL, *maxValueTracker = NULL;
+	unsigned long long *maxValueTracker = NULL;
 
 	// Initialises the empty matrices
 	T = mzd_init(n, n<<1);
 	L = mzd_init(n, n<<1);
 	M = mzd_init(n<<1, n<<1);
-
-	// We will generate our columns here, in decimal form
-	progressTracker = (unsigned long long*)calloc(n<<1,sizeof(unsigned long long));
 
 	// Defines the highest achieveable value for a column. This is 2^(n-1) for most
 	// except the identity matrix part.
@@ -128,7 +126,8 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 	}
 
 	// Several prints for debugging
-	// print_matrix(L,"L");
+	// for(i=0;i<foundL.size();i++)
+	// 	print_matrix(foundL[i],"L");
 
 	// for(i = 0; i < n<<1; i++)
 	// 	printf("progressTracker[%lld] = %lld\n",i,progressTracker[i]);
@@ -205,18 +204,19 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 				//time_find[0] = clock();
 				// Is the following if redundant? It make sence when foundL is predefined.
 				// It is nessessary to check this.
-				if(!(find(foundL.begin(), foundL.end(), L) != foundL.end()))
+				//if(find(foundL.begin(), foundL.end(), L) == foundL.end())
+				if(unique(foundL,L))
 				{
 					//time_find[1] = clock();
 					//time_find[2] += (time_find[1] - time_find[0]);
-					// printf("progressTracker = [");
-					// for(i = 0; i < 2*n; i++)
-					// {
-					// 	if(i != (2*n - 1) )
-					// 		printf("%d,", progressTracker[i]);
-					// 	else
-					// 		printf("%d] (%ld)\n", progressTracker[i],foundL.size() + 1);
-					// }
+					printf("progressTracker = [");
+					for(i = 0; i < 2*n; i++)
+					{
+						if(i != (2*n - 1) )
+							printf("%d,", progressTracker[i]);
+						else
+							printf("%d] (%ld)\n", progressTracker[i],foundL.size() + 1);
+					}
 					// printf(">> %d\n",__LINE__);
 					//time_tryCombine[0] = clock();
 					M = tryCombine(L,foundL);
@@ -234,16 +234,8 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 						// printf(">> %d\n",__LINE__);
 						if(!full)
 						{
-							if(progressTracker)
-								free(progressTracker);
 							if(maxValueTracker)
 								free(maxValueTracker);
-
-							for(i=0;i<foundL.size();i++)
-							{
-								mzd_free(foundL[i]);
-							}
-							foundL.clear();
 
 							mzd_free(T);
 							mzd_free(L);
@@ -252,13 +244,6 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 							return foundM;
 						}
 					}
-				}
-				else
-				{
-					printf(">>> Critical bug (%d) (see comments under \"if\")<<<\n",__LINE__);
-					exit(0);
-					//time_find[1] = clock();
-					//time_find[2] += (time_find[1] - time_find[0]);
 				}
 				progressTracker[column]++;
 			}
@@ -279,16 +264,8 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 	// printf("Done. Number of linear functions is %ld\n", foundL.size());
 	// printf("Number of matriceis is %ld\n", foundM.size());
 
-	if(progressTracker)
-		free(progressTracker);
 	if(maxValueTracker)
 		free(maxValueTracker);
-
-	for(i=0;i<foundL.size();i++)
-	{
-		mzd_free(foundL[i]);
-	}
-	foundL.clear();
 
 	mzd_free(T);
 	mzd_free(L);
@@ -343,7 +320,7 @@ map<unsigned long long, vector< mzd_t* > > findSigmas(unsigned long long *F, uns
 			// }
 
 			// Add only unique vectors
-			if (find(Sigmas[nbits].begin(), Sigmas[nbits].end(), sigma) == Sigmas[nbits].end())
+			if (unique(Sigmas[nbits],sigma))
 			{
 				Sigmas[nbits].push_back(mzd_copy(NULL,sigma));
 			}
@@ -358,7 +335,7 @@ map<unsigned long long, vector< mzd_t* > > findSigmas(unsigned long long *F, uns
 /**
  * Iterates through the columns of a matrix, and checks if they all are accepted with their corresponding sigmas
  */
-bool matrixCheck(mzd_t const *L, unsigned long long column, map<unsigned long long, vector< mzd_t* > > Sigmas)
+bool matrixCheck(const mzd_t *L, unsigned long long column, map<unsigned long long, vector< mzd_t* > > Sigmas)
 {
 	unsigned long long s = 0;
 	mzd_t *T = NULL;
@@ -388,7 +365,7 @@ bool matrixCheck(mzd_t const *L, unsigned long long column, map<unsigned long lo
 }
 
 // Print the given matrix.
-void print_matrix(mzd_t const *L, string str)
+void print_matrix(const mzd_t *L, string str)
 {
 	unsigned long long i = 0, j = 0;
 
@@ -434,20 +411,9 @@ void print_Sigmas(map<unsigned long long, vector< mzd_t* > > Sigmas)
 }
 
 /*
- * Updates the column of the matrix
- */
-void updatedMat(unsigned long long *progressTracker, unsigned long long column, mzd_t *L)
-{
-	unsigned long long i = 0;
-
-	for(i=0; i < L->nrows; i++)
-		mzd_write_bit(L,i,column,(progressTracker[column] >> i) & 1);
-}
-
-/*
  * Try to combines two n x 2n matrices into one invertible 2n x 2n matrix.
  */
-mzd_t* tryCombine(mzd_t const *L, vector< mzd_t* > foundL)
+mzd_t* tryCombine(const mzd_t *L, vector< mzd_t* > foundL)
 {
 	unsigned long long rank = 0, k = 0, n = L->nrows;
 	mzd_t *M = NULL, *T = NULL;
@@ -473,4 +439,28 @@ mzd_t* tryCombine(mzd_t const *L, vector< mzd_t* > foundL)
 	mzd_free(M);
 
 	return mzd_init(n<<1,n<<1);
+}
+
+/*
+ * Find the element in the list. Return 1 if found and 0 otherwise.
+ */
+template <typename VectorOrMap>
+int unique(VectorOrMap list, mzd_t* el)
+{
+    for(typename VectorOrMap::iterator it = list.begin(); it != list.end(); ++it )
+    	if(mzd_equal(*it,el))
+			return 0;
+
+	return 1;
+}
+
+/*
+ * Updates the column of the matrix
+ */
+void updatedMat(unsigned long long *progressTracker, unsigned long long column, mzd_t *L)
+{
+	unsigned long long i = 0;
+
+	for(i=0; i < L->nrows; i++)
+		mzd_write_bit(L,i,column,(progressTracker[column] >> i) & 1);
 }

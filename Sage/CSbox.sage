@@ -73,7 +73,7 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
     INPUT::
         
     - ``F`` -- string (default: None), input polynomial for checking
-    - ``debug`` -- boolean (default: False), input polynomial for checking
+    - ``debug`` -- boolean (default: False), if True print extra information
     - ``foundL`` -- list (default: []), a list of linear functions 
     - ``full`` -- boolean (default: False), in case of ``True`` return all possible linear matrices which give permutations
     - ``L`` -- matrix (default: zero matrix), initial value of the state (matrix)
@@ -237,11 +237,10 @@ def cr_is_equivalent_to_permutation_new(self,**kwargs):
 
     INPUT::
         
-    - ``F`` -- string (default: None), input polynomial for checking
-    - ``debug`` -- boolean (default: False), input polynomial for checking
+    - ``F``      -- string (default: None), input polynomial for checking
     - ``foundL`` -- list (default: []), a list of linear functions 
-    - ``full`` -- boolean (default: False), in case of ``True`` return all possible linear matrices which give permutations
-    - ``L`` -- matrix (default: zero matrix), initial value of the state (matrix)
+    - ``full``   -- boolean (default: False), in case of ``True`` return all possible linear matrices which give permutations
+    - ``pt``     -- vector (default: zero vector), initial values of the matrix L (progress tracker)
 
     EXAMPLE::
 
@@ -263,10 +262,11 @@ def cr_is_equivalent_to_permutation_new(self,**kwargs):
 
     '''
     F       = kwargs.get('F',None)
-    debug   = kwargs.get('debug',False)
     foundL  = kwargs.get('foundL',[])
     full    = kwargs.get('full',False)
-    L       = kwargs.get('L',matrix(GF(2),self._n,0))
+    pt      = kwargs.get('pt',[0 for _ in xrange(2*self._n)])
+
+    pt = pt + [0 for _ in xrange(2*self._n - len(pt))]
 
     if F is None:
         raise TypeError("Function 'F' must be presented")
@@ -282,7 +282,7 @@ def cr_is_equivalent_to_permutation_new(self,**kwargs):
 
     self.generate_sbox(method='polynomial',G=F)
 
-    M = cpp_is_equivalent_to_permutation(self._S,self._length, self._n, full)
+    M = cpp_is_equivalent_to_permutation(self._S, self._length, self._n, foundL, pt, full)
 
     if S is not None:
         self._polynomial = polynomial

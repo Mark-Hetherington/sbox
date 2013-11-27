@@ -100,8 +100,10 @@ def test_equivalence(**kargs):
 
     F="g*x^3+g^5*x^10+g^4*x^24"
 
+    foundL = [[1,0,2,4,7,6,8,16,32,16,16,0],[1,0,2,4,7,8,16,32,32,32,32,0],[1,0,2,4,8,6,16,32,16,32,32,0],[1,0,2,4,8,9,16,16,32,16,16,0],[1,0,2,4,8,16,32,32,32,32,32,0],[1,0,2,4,8,16,32,57,54,57,57,0],[1,2,2,0,4,1,0,8,16,32,24,8]]
+
     #M1 = S.is_equivalent_to_permutation(F=F)
-    M2 = S.is_equivalent_to_permutation_new(F=F,full=false)
+    M2 = S.is_equivalent_to_permutation_new(F=F,full=false,pt=[1,2,4],foundL=foundL)
 
     #print "M1:\n{0}".format(M1)
     print "M2:\n{0}".format(M2)

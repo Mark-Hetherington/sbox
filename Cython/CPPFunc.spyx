@@ -32,7 +32,7 @@ from sage.libs.m4ri cimport *
 from libcpp.map cimport map as mMap
 from libcpp.vector cimport vector
 
-from libc.stdlib cimport malloc
+from libc.stdlib cimport calloc
 from libc.stdlib cimport free
 
 ctypedef vector[long long]* pV
@@ -41,7 +41,7 @@ cdef extern from "Cycles.h":
     mMap[long long, pV] findCycles(long long sbox[], long long s)
 
 cdef extern from "isE2P.h":
-    vector[mzd_t*] is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long long n, unsigned long long full)
+    vector[mzd_t*] is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long long n, vector[mzd_t*] foundL, unsigned long long *pt, unsigned long long full)
 
 def cpp_cycles(pSbox,length):
     r"""
@@ -57,7 +57,7 @@ def cpp_cycles(pSbox,length):
         
     """
     cdef mMap[long long, pV] cycles
-    cdef long long *cSbox = <long long *>malloc(length*sizeof(long long))
+    cdef long long *cSbox = <long long *>calloc(length,sizeof(long long))
 
     for i in xrange(length):
         cSbox[i] = pSbox[i]
@@ -78,7 +78,7 @@ def cpp_cycles(pSbox,length):
 
     return ret
 
-def cpp_is_equivalent_to_permutation(pSbox,length,n,full=False):
+def cpp_is_equivalent_to_permutation(pSbox,length,n,foundL,pt,full=False):
     r""" 
     Find matrix or matrices equivalent to a permutation.
 
@@ -92,15 +92,32 @@ def cpp_is_equivalent_to_permutation(pSbox,length,n,full=False):
         - ``n``      -- length of input bits
         - ``full``   -- if ``True`` return all matrices which give CCZ-equivalent permutations
     """
-    cdef unsigned long long *cSbox = <unsigned long long *>malloc(length*sizeof(long long))
+    cdef unsigned long long *cSbox = <unsigned long long *>calloc(length,sizeof(unsigned long long))
+    cdef unsigned long long *cpt = <unsigned long long *>calloc(n<<1,sizeof(unsigned long long))
     cdef vector[mzd_t*] cM
+    cdef vector[mzd_t*] cfoundL
 
     for i in xrange(length):
         cSbox[i] = pSbox[i]
 
-    cM = is_E2P(cSbox, length, n, full)
+    for l in xrange(len(foundL)):
+        cfoundL.push_back(mzd_init(n, n<<1))
+        for i in xrange(n):
+            for j in xrange(n<<1):
+                mzd_write_bit(cfoundL[l],i,j,(foundL[l][j]>>i) & 1)
+
+    for i in xrange(n<<1):
+        cpt[i] = pt[i]
+
+
+    cM = is_E2P(cSbox, length, n, cfoundL, cpt, full)
 
     free(cSbox)
+    free(cpt)
+    for i in xrange(cfoundL.size()):
+        mzd_free(cfoundL[i])
+    cfoundL.clear()
+
     foundM = []
     M = matrix(GF(2),n<<1,n<<1)
 
