@@ -23,6 +23,7 @@ vector< mzd_t* > is_E2P(E2P_parameters io)
 	vector< mzd_t* > M;
 	map<unsigned long long, vector< mzd_t* > > Sigmas;
 	unsigned long long i = 0, j = 0;
+	char file_name[FILENAME_MAX] = {};
 
 	if(io.sbox[0] != 0)
 	{
@@ -31,8 +32,16 @@ vector< mzd_t* > is_E2P(E2P_parameters io)
 		io.sbox[0] = 0;
 	}
 
+    if(io.debug)
+    {
+        sprintf(file_name,"./debug%lld.txt",io.cpu);
+        io.output = fopen(file_name,"w");
+        if(!io.output)
+        	fprintf(stderr,"File '%s' cannot be opened",file_name);
+    }
+
 	// printf("length = %lld\n",io.length);
-	printf("findSigmas: \n");
+	// printf("findSigmas: \n");
 
 	Sigmas = findSigmas(io);
 
@@ -60,7 +69,7 @@ vector< mzd_t* > is_E2P(E2P_parameters io)
 	// }
 	// printf("\n");	
 
-	printf("findMatrix: \n");
+	// printf("findMatrix: \n");
 
 	M = findMatrix(Sigmas,io);
 
@@ -79,6 +88,11 @@ vector< mzd_t* > is_E2P(E2P_parameters io)
 	}
 
 	Sigmas.clear();
+
+    if(io.debug && io.output)
+    {
+		fclose(io.output);
+    }
 
 	return M;
 }
@@ -132,6 +146,13 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 		}
 	}
 
+	for(i = (io.n<<1)-1; i < (io.n<<1); i--)
+		if(io.progressTracker.start[i] != 0)
+		{
+			column = i;
+			break;
+		}
+
 	// Several prints for debugging
 	// for(i=0;i<foundL.size();i++)
 	// 	print_matrix(foundL[i],"L");
@@ -159,24 +180,36 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 
 	while(true)
 	{
-		//if(io.progressTracker.start[(io.n<<1)-(io.n>>1)] == 0)
-		if(io.progressTracker.start[15] == 0)
+		if(io.debug)
 		{
-			printf("progressTracker\t\t: [");
-			for(i = 0; i < io.n<<1; i++)
+			if(io.progressTracker.start[(io.n<<1)-(io.n>>1)] == 0)
 			{
-				if (i != ((io.n<<1)-1) )
-					printf("%lld,",io.progressTracker.start[i]);
-				else
-					printf("%lld] (%ld) // (%lld,%d)\n", io.progressTracker.start[i],io.foundL.size(),column,maxValueTracker[column]);
-			}
+				fprintf(io.output,"progressTracker\t: [[");
+				for(i = 0; i < io.n<<1; i++)
+				{
+					if (i != ((io.n<<1)-1) )
+						fprintf(io.output,"%lld,",io.progressTracker.start[i]);
+					else
+						fprintf(io.output,"%lld],", io.progressTracker.start[i]);
+				}
 
-			// printf("time_updatedMat\t\t: %f\n", (double)(time_updatedMat[2]) / CLOCKS_PER_SEC);
-			// printf("time_gauss\t\t: %f\n", (double)(time_gauss[2]) / CLOCKS_PER_SEC);
-			// printf("time_matrixCheck\t: %f\n", (double)(time_matrixCheck[2]) / CLOCKS_PER_SEC);
-			// printf("time_find\t\t: %f\n", (double)(time_find[2]) / CLOCKS_PER_SEC);
-			// printf("time_tryCombine\t\t: %f\n", (double)(time_tryCombine[2]) / CLOCKS_PER_SEC);
-			// printf("~~~~~~~~~~~~~~~~~~~~~\n");
+				fprintf(io.output,"[");
+				for(i = 0; i < io.n<<1; i++)
+				{
+					if (i != ((io.n<<1)-1) )
+						fprintf(io.output,"%lld,",io.progressTracker.end[i]);
+					else
+						fprintf(io.output,"%lld]] (%ld) // (%lld,%d)\n", io.progressTracker.end[i],io.foundL.size(),column,maxValueTracker[column]);
+				}
+				fflush(io.output);
+
+				// printf("time_updatedMat\t\t: %f\n", (double)(time_updatedMat[2]) / CLOCKS_PER_SEC);
+				// printf("time_gauss\t\t: %f\n", (double)(time_gauss[2]) / CLOCKS_PER_SEC);
+				// printf("time_matrixCheck\t: %f\n", (double)(time_matrixCheck[2]) / CLOCKS_PER_SEC);
+				// printf("time_find\t\t: %f\n", (double)(time_find[2]) / CLOCKS_PER_SEC);
+				// printf("time_tryCombine\t\t: %f\n", (double)(time_tryCombine[2]) / CLOCKS_PER_SEC);
+				// printf("~~~~~~~~~~~~~~~~~~~~~\n");
+			}
 		}
 
 		if (io.progressTracker.start[column] > maxValueTracker[column])
@@ -244,15 +277,18 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 				{
 					//time_find[1] = clock();
 					//time_find[2] += (time_find[1] - time_find[0]);
-					// printf("progressTracker = [");
-					// for(i = 0; i < 2*io.n; i++)
-					// {
-					// 	if(i != (2*io.n - 1) )
-					// 		printf("%d,", io.progressTracker.start[i]);
-					// 	else
-					// 		printf("%d] (%ld)\n", io.progressTracker.start[i],io.foundL.size() + 1);
-					// }
-					// printf(">> %d\n",__LINE__);
+					if(io.debug)
+					{
+						fprintf(io.output,"progressTracker\t: [");
+						for(i = 0; i < io.n<<1; i++)
+						{
+							if (i != ((io.n<<1)-1) )
+								fprintf(io.output,"%lld,",io.progressTracker.start[i]);
+							else
+								fprintf(io.output,"%lld] (%lld)\n", io.progressTracker.start[i], io.foundL.size()+1);
+						}
+					}
+					//printf(">> %d\n",__LINE__);
 					//time_tryCombine[0] = clock();
 					M = tryCombine(L,io.foundL);
 					//time_tryCombine[1] = clock();

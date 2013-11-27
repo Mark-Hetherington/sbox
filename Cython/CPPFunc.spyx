@@ -32,8 +32,7 @@ from sage.libs.m4ri cimport *
 from libcpp.map cimport map as mMap
 from libcpp.vector cimport vector
 
-from libc.stdlib cimport calloc
-from libc.stdlib cimport free
+from libc.stdlib cimport calloc,free
 
 ctypedef vector[long long]* pV
 
@@ -52,6 +51,10 @@ cdef extern from "isE2P.h":
         vector[mzd_t*]     foundL
         pt                 progressTracker
         unsigned long long full
+        unsigned long long ncpu
+        unsigned long long cpu
+        unsigned long long debug
+        FILE               *output
 
     vector[mzd_t*] is_E2P(E2P_parameters io)
 
@@ -90,7 +93,7 @@ def cpp_cycles(pSbox,length):
 
     return ret
 
-def cpp_is_equivalent_to_permutation(pSbox,length,n,foundL,pt,full=False):
+def cpp_is_equivalent_to_permutation(queue):
     r""" 
     Find matrix or matrices equivalent to a permutation.
 
@@ -104,6 +107,18 @@ def cpp_is_equivalent_to_permutation(pSbox,length,n,foundL,pt,full=False):
         - ``n``      -- length of input bits
         - ``full``   -- if ``True`` return all matrices which give CCZ-equivalent permutations
     """
+    args   = queue.get()
+    pSbox  = args[0]
+    length = args[1]
+    n      = args[2]
+    foundL = args[3]
+    pt     = args[4]
+    full   = args[5]
+    ncpu   = args[6]
+    cpu    = args[7]
+    
+    debug  = args[8]
+
     cdef E2P_parameters io
 
     io.sbox = <unsigned long long *>calloc(length,sizeof(unsigned long long))
@@ -127,7 +142,10 @@ def cpp_is_equivalent_to_permutation(pSbox,length,n,foundL,pt,full=False):
 
     io.length = length
     io.n = n
-    io.full =full
+    io.full = full
+    io.debug = debug
+    io.ncpu = ncpu
+    io.cpu = cpu
 
     cM = is_E2P(io)
 
@@ -152,8 +170,8 @@ def cpp_is_equivalent_to_permutation(pSbox,length,n,foundL,pt,full=False):
     cM.clear()
 
     if foundM == []:
-        return []
+        queue.put([]) 
     elif full is False:
-        return foundM[0]
+        queue.put(foundM[0])
     else:
-        return foundM
+        queue.put(foundM)

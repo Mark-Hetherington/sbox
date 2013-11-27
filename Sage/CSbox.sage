@@ -20,6 +20,8 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #***************************************************************************** 
 
+from multiprocessing import Process, Queue
+
 def cr_absolute_indicator(self):
     r"""
     Return the maximum value of the autocorrelation spectrum
@@ -262,9 +264,11 @@ def cr_is_equivalent_to_permutation_new(self,**kwargs):
             on Finite Fields and their Applications, july 2009. at the University College in Dublin. http://goo.gl/5pMHU
 
     '''
+    debug   = kwargs.get('debug',False)
     F       = kwargs.get('F',None)
     foundL  = kwargs.get('foundL',[])
     full    = kwargs.get('full',False)
+    ncpu    = kwargs.get('ncpu',1)
     pt      = kwargs.get('pt',[[],[]])
 
     if F is None:
@@ -273,6 +277,14 @@ def cr_is_equivalent_to_permutation_new(self,**kwargs):
     if not isinstance(foundL,list):
         raise TypeError("Ls must be in list")
 
+    # Save current S-box and polynomial
+    if self._S is not None:
+        polynomial = self._polynomial
+        S = self._S[:]
+    else:
+        S = None
+
+    # Padding of the progress tracker
     if len(pt) != 2:
         pt = [[],[]]
 
@@ -284,21 +296,59 @@ def cr_is_equivalent_to_permutation_new(self,**kwargs):
         else:
             pt[1].append((1 << self._n) - 1)
 
-    if self._S is not None:
-        polynomial = self._polynomial
-        S = self._S[:]
-    else:
-        S = None
-
+    # Make extra computations for progress trackers
     self.generate_sbox(method='polynomial',G=F)
 
-    M = cpp_is_equivalent_to_permutation(self._S, self._length, self._n, foundL, pt, full)
+    max_value = []
 
+    for i in xrange(2*self._n):
+        if i < self._n:
+            max_value.append((1 << (i+1)) - 1)
+        else:
+            max_value.append((1 << self._n) - 1)
+    max_value     = ZZ(max_value[::-1],1<<self._n)
+    initial_value = ZZ(pt[0][::-1],1<<self._n)
+    offset        = ZZ(floor(max_value/ncpu))
+
+    # Create progress trackers
+    PTs = []
+
+    for i in xrange(ncpu):
+        if i == ncpu-1:
+            PTs.append([initial_value.digits(1<<self._n,padto=self._n<<1)[::-1],max_value.digits(1<<self._n,padto=self._n<<1)[::-1]])
+        else:
+            PTs.append([initial_value.digits(1<<self._n,padto=self._n<<1)[::-1],(initial_value+offset).digits(1<<self._n,padto=self._n<<1)[::-1]])
+            initial_value += offset
+
+    # Create independend processes
+    prs = []
+    qus = []
+
+    for i in xrange(ncpu):
+        qus.append(Queue())
+
+        qus[i].put([self._S, self._length, self._n, foundL, PTs[i], full, ncpu, i, debug])
+
+        prs.append(Process(target=cpp_is_equivalent_to_permutation, args=(qus[i],)))
+        prs[i].start()
+
+    # Wait until all process will be done
+    for p in prs:
+        p.join()
+
+    # Joining all found matrices into one output
+    foundM = []
+    for i,q in enumerate(qus):
+        M = q.get()
+        if (M != []) and (not M in foundM):
+            foundM.append(M)
+
+    # Load previous S-box and polynomial
     if S is not None:
         self._polynomial = polynomial
         self._S = S[:]
 
-    return M
+    return foundM
 
 def cr_check_polynomial(self):
     r"""

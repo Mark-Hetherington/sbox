@@ -98,16 +98,12 @@ def test_equivalence(**kargs):
 
     S=Sbox(n=bits,m=bits)
 
-    #F="g*x^3+g^5*x^10+g^4*x^24"
-    F="g*x^3+g^257*x^514+g^256*x^528"
-    #F="g*x^3+g^4*x^7"
+    F="g*x^3+g^5*x^10+g^4*x^24" # for n=6
+    #F="g*x^3+g^257*x^514+g^256*x^528" # for n=12
 
-    #foundL = [[1,0,2,4,7,6,8,16,32,16,16,0],[1,0,2,4,7,8,16,32,32,32,32,0],[1,0,2,4,8,6,16,32,16,32,32,0],[1,0,2,4,8,9,16,16,32,16,16,0],[1,0,2,4,8,16,32,32,32,32,32,0],[1,0,2,4,8,16,32,57,54,57,57,0],[1,2,2,0,4,1,0,8,16,32,24,8]]
-    foundL = []
- 
     #M1 = S.is_equivalent_to_permutation(F=F)
-    #M2 = S.is_equivalent_to_permutation_new(F=F,full=false,pt=[[],[1,0,2,4,8,16,32,57,54,57,57,2]],foundL=foundL)
-    M2 = S.is_equivalent_to_permutation_new(F=F,full=false,pt=[[0,1,2,0,4,8,12,16,32,64,128,256,512,1024,441,783,0,0,0,0,0,0,0,0],[]])
+    #M2 = S.is_equivalent_to_permutation_new(F=F,pt=[[0,1,2,0,4,8,16,27,32,64,128,256,512,1024,267,0,0,0,0,0,0,0,0,0],[]])
+    M2 = S.is_equivalent_to_permutation_new(F=F,ncpu=4,debug=True)
 
     #print "M1:\n{0}".format(M1)
     print "M2:\n{0}".format(M2)

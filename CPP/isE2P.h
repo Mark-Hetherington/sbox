@@ -22,6 +22,7 @@ AUTHORS:
 #include <vector>
 #include <map>
 #include <stdio.h>
+#include <stdio.h>
 #include <algorithm>
 #include <sstream>
 #include <time.h>
@@ -44,6 +45,10 @@ struct E2P_parameters
 	vector< mzd_t* > foundL;
 	pt progressTracker;
 	unsigned long long full;
+	unsigned long long ncpu;
+	unsigned long long cpu;
+	unsigned long long debug;
+	FILE *output;
 };
 
 vector< mzd_t* > is_E2P(E2P_parameters io);
