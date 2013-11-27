@@ -24,6 +24,10 @@ AUTHORS:
 
 import os
 from sage.all import ZZ
+from sage.all import GF
+from sage.all import matrix
+
+from sage.libs.m4ri cimport *
 
 from libcpp.map cimport map as mMap
 from libcpp.vector cimport vector
@@ -37,7 +41,7 @@ cdef extern from "Cycles.h":
     mMap[long long, pV] findCycles(long long sbox[], long long s)
 
 cdef extern from "isE2P.h":
-    int test()
+    vector[mzd_t*] is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long long n, unsigned long long full)
 
 def cpp_cycles(pSbox,length):
     r"""
@@ -74,7 +78,7 @@ def cpp_cycles(pSbox,length):
 
     return ret
 
-def cpp_is_equivalent_to_permutation(pSbox,length,n):
+def cpp_is_equivalent_to_permutation(pSbox,length,n,full=False):
     r""" 
     Find matrix or matrices equivalent to a permutation.
 
@@ -86,27 +90,32 @@ def cpp_is_equivalent_to_permutation(pSbox,length,n):
         - ``pSbox``  -- array of integers
         - ``length`` -- length of array
         - ``n``      -- length of input bits
+        - ``full``   -- if ``True`` return all matrices which give CCZ-equivalent permutations
     """
-    test()
-    return
-    # cdef mMap[long long, pV] cycles
-    # cdef long long *cSbox = <long long *>malloc(length*sizeof(long long))
+    cdef unsigned long long *cSbox = <unsigned long long *>malloc(length*sizeof(long long))
+    cdef vector[mzd_t*] cM
 
-    # for i in xrange(length):
-    #     cSbox[i] = pSbox[i]
+    for i in xrange(length):
+        cSbox[i] = pSbox[i]
 
-    # cycles = findMatrix(cSbox, length)
+    cM = is_E2P(cSbox, length, n, full)
 
-    # free(cSbox)
+    free(cSbox)
+    foundM = []
+    M = matrix(GF(2),n<<1,n<<1)
 
-    # ret = []
+    for m in xrange(cM.size()):
+        for i in xrange(n<<1):
+            for j in xrange(n<<1):
+                M[i,j] = mzd_read_bit(cM[m],i,j)
 
-    # for i in xrange (1,cycles.size()+1):
-    #     ret.append([])
-    #     if not cycles[i].empty():
-    #         for j in xrange (cycles[i].size()):
-    #             ret[i-1].append(ZZ(cycles[i].at(j)))
+        foundM.append(M)
 
-    # ret.sort(key=lambda c: len(c))
+        mzd_free(cM[m])
 
-    # return ret
+    cM.clear()
+
+    if full is False:
+        return foundM[0]
+    else:
+        return foundM

@@ -282,13 +282,13 @@ def cr_is_equivalent_to_permutation_new(self,**kwargs):
 
     self.generate_sbox(method='polynomial',G=F)
 
-    cpp_is_equivalent_to_permutation(self._S,self._length, self._n)
+    M = cpp_is_equivalent_to_permutation(self._S,self._length, self._n, full)
 
     if S is not None:
         self._polynomial = polynomial
         self._S = S[:]
 
-    return random_matrix(GF(2),self._n,2*self._n)
+    return M
 
 def cr_check_polynomial(self):
     r"""

@@ -30,5 +30,4 @@ AUTHORS:
 
 using namespace std;
 
-int test();
-int is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long long n);
+vector< mzd_t* > is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long long n, unsigned long long full);
