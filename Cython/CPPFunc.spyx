@@ -41,7 +41,19 @@ cdef extern from "Cycles.h":
     mMap[long long, pV] findCycles(long long sbox[], long long s)
 
 cdef extern from "isE2P.h":
-    vector[mzd_t*] is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long long n, vector[mzd_t*] foundL, unsigned long long *pt, unsigned long long full)
+    ctypedef struct pt:
+        unsigned long long *start
+        unsigned long long *end
+
+    ctypedef struct E2P_parameters:
+        unsigned long long *sbox
+        unsigned long long length
+        unsigned long long n
+        vector[mzd_t*]     foundL
+        pt                 progressTracker
+        unsigned long long full
+
+    vector[mzd_t*] is_E2P(E2P_parameters io)
 
 def cpp_cycles(pSbox,length):
     r"""
@@ -92,31 +104,38 @@ def cpp_is_equivalent_to_permutation(pSbox,length,n,foundL,pt,full=False):
         - ``n``      -- length of input bits
         - ``full``   -- if ``True`` return all matrices which give CCZ-equivalent permutations
     """
-    cdef unsigned long long *cSbox = <unsigned long long *>calloc(length,sizeof(unsigned long long))
-    cdef unsigned long long *cpt = <unsigned long long *>calloc(n<<1,sizeof(unsigned long long))
+    cdef E2P_parameters io
+
+    io.sbox = <unsigned long long *>calloc(length,sizeof(unsigned long long))
+    io.progressTracker.start = <unsigned long long *>calloc(n<<1,sizeof(unsigned long long))
+    io.progressTracker.end = <unsigned long long *>calloc(n<<1,sizeof(unsigned long long))
+
     cdef vector[mzd_t*] cM
-    cdef vector[mzd_t*] cfoundL
 
     for i in xrange(length):
-        cSbox[i] = pSbox[i]
+        io.sbox[i] = pSbox[i]
 
     for l in xrange(len(foundL)):
-        cfoundL.push_back(mzd_init(n, n<<1))
+        io.foundL.push_back(mzd_init(n, n<<1))
         for i in xrange(n):
             for j in xrange(n<<1):
-                mzd_write_bit(cfoundL[l],i,j,(foundL[l][j]>>i) & 1)
+                mzd_write_bit(io.foundL[l],i,j,(foundL[l][j]>>i) & 1)
 
     for i in xrange(n<<1):
-        cpt[i] = pt[i]
+        io.progressTracker.start[i] = pt[0][i]
+        io.progressTracker.end[i]   = pt[1][i]
 
+    io.length = length
+    io.n = n
+    io.full =full
 
-    cM = is_E2P(cSbox, length, n, cfoundL, cpt, full)
+    cM = is_E2P(io)
 
-    free(cSbox)
-    free(cpt)
-    for i in xrange(cfoundL.size()):
-        mzd_free(cfoundL[i])
-    cfoundL.clear()
+    free(io.sbox)
+    free(io.progressTracker.start)
+    for i in xrange(io.foundL.size()):
+        mzd_free(io.foundL[i])
+    io.foundL.clear()
 
     foundM = []
     M = matrix(GF(2),n<<1,n<<1)
@@ -132,7 +151,9 @@ def cpp_is_equivalent_to_permutation(pSbox,length,n,foundL,pt,full=False):
 
     cM.clear()
 
-    if full is False:
+    if foundM == []:
+        return []
+    elif full is False:
         return foundM[0]
     else:
         return foundM

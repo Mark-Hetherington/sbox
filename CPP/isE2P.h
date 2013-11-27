@@ -30,4 +30,20 @@ AUTHORS:
 
 using namespace std;
 
-vector< mzd_t* > is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long long n, vector< mzd_t* > foundL, unsigned long long *progressTracker, unsigned long long full);
+struct pt
+{
+	unsigned long long *start;
+	unsigned long long *end;
+};
+
+struct E2P_parameters
+{
+	unsigned long long *sbox;
+	unsigned long long length;
+	unsigned long long n;
+	vector< mzd_t* > foundL;
+	pt progressTracker;
+	unsigned long long full;
+};
+
+vector< mzd_t* > is_E2P(E2P_parameters io);

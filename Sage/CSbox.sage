@@ -240,7 +240,8 @@ def cr_is_equivalent_to_permutation_new(self,**kwargs):
     - ``F``      -- string (default: None), input polynomial for checking
     - ``foundL`` -- list (default: []), a list of linear functions 
     - ``full``   -- boolean (default: False), in case of ``True`` return all possible linear matrices which give permutations
-    - ``pt``     -- vector (default: zero vector), initial values of the matrix L (progress tracker)
+    - ``pt``     -- vector (default: zero [list1,list2]), initial values of the matrix L (list1) and the final state.
+                    If listX is not defined or not full then it is padded.
 
     EXAMPLE::
 
@@ -264,15 +265,24 @@ def cr_is_equivalent_to_permutation_new(self,**kwargs):
     F       = kwargs.get('F',None)
     foundL  = kwargs.get('foundL',[])
     full    = kwargs.get('full',False)
-    pt      = kwargs.get('pt',[0 for _ in xrange(2*self._n)])
-
-    pt = pt + [0 for _ in xrange(2*self._n - len(pt))]
+    pt      = kwargs.get('pt',[[],[]])
 
     if F is None:
         raise TypeError("Function 'F' must be presented")
 
     if not isinstance(foundL,list):
         raise TypeError("Ls must be in list")
+
+    if len(pt) != 2:
+        pt = [[],[]]
+
+    pt[0] = pt[0] + [0 for _ in xrange(2*self._n - len(pt[0]))]
+
+    for i in xrange(len(pt[1]),2*self._n):
+        if i < self._n:
+            pt[1].append((1 << (i+1)) - 1)
+        else:
+            pt[1].append((1 << self._n) - 1)
 
     if self._S is not None:
         polynomial = self._polynomial

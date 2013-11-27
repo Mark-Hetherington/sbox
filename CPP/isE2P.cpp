@@ -6,8 +6,8 @@
 #include "isE2P.h"
 
 void										clearColumn(mzd_t *, unsigned long long column);
-vector< mzd_t* >							findMatrix(map<unsigned long long, vector< mzd_t* > >, unsigned long long, vector< mzd_t* >, unsigned long long *, unsigned long long);
-map<unsigned long long, vector< mzd_t* > >	findSigmas(unsigned long long*, unsigned long long);
+vector< mzd_t* >							findMatrix(map<unsigned long long, vector< mzd_t* > >, E2P_parameters);
+map<unsigned long long, vector< mzd_t* > >	findSigmas(const E2P_parameters);
 bool 										matrixCheck(const mzd_t*, unsigned long long, map<unsigned long long, vector< mzd_t* > >);
 void										print_matrix(const mzd_t*, string);
 void										print_Sigmas(map<unsigned long long, vector< mzd_t* > >);
@@ -18,23 +18,28 @@ void										updatedMat(unsigned long long *, unsigned long long, mzd_t *);
 /*
  * The main function. Interface between Cython and C++.
  */
-vector< mzd_t* > is_E2P(unsigned long long *sbox, unsigned long long length, unsigned long long n, vector< mzd_t* > foundL, unsigned long long *progressTracker, unsigned long long full = 0)
+vector< mzd_t* > is_E2P(E2P_parameters io)
 {
 	vector< mzd_t* > M;
 	map<unsigned long long, vector< mzd_t* > > Sigmas;
 	unsigned long long i = 0, j = 0;
 
-	if(sbox[0] != 0)
+	if(io.sbox[0] != 0)
 	{
-		for(i=1;i<length;i++)
-			sbox[i] = sbox[0] ^ sbox[i];
-		sbox[0] = 0;
+		for(i=1;i<io.length;i++)
+			io.sbox[i] = io.sbox[0] ^ io.sbox[i];
+		io.sbox[0] = 0;
 	}
 
-	// printf("length = %lld\n",length);
-	// printf("Find Sigmas\n");
+	// printf("length = %lld\n",io.length);
+	printf("findSigmas: \n");
 
-	Sigmas = findSigmas(sbox, n);
+	Sigmas = findSigmas(io);
+
+	// for (i = 0; i < Sigmas.size(); i++)
+	// {
+	// 	printf("Sigmas[%lld] = %lld\n",i,Sigmas[i].size());
+	// }
 
 	// Print sbox
 	// printf("sbox:\n");
@@ -55,7 +60,9 @@ vector< mzd_t* > is_E2P(unsigned long long *sbox, unsigned long long length, uns
 	// }
 	// printf("\n");	
 
-	M = findMatrix(Sigmas,n,foundL,progressTracker,full);
+	printf("findMatrix: \n");
+
+	M = findMatrix(Sigmas,io);
 
 	// Print the matrix
 	// if(!mzd_is_zero(M))
@@ -87,7 +94,7 @@ void clearColumn(mzd_t *L, unsigned long long column)
 		mzd_write_bit(L,i,column,0);
 }
 
-vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, unsigned long long n, vector< mzd_t* > foundL, unsigned long long *progressTracker, unsigned long long full = 0)
+vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E2P_parameters io)
 {
 	// Variables for testing performance
 	//clock_t time_updatedMat[3] = {0,0,0}, time_gauss[3] = {0,0,0}, time_matrixCheck[3] = {0,0,0}, time_find[3] = {0,0,0}, time_tryCombine[3] = {0,0,0};
@@ -105,23 +112,23 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 	unsigned long long *maxValueTracker = NULL;
 
 	// Initialises the empty matrices
-	T = mzd_init(n, n<<1);
-	L = mzd_init(n, n<<1);
-	M = mzd_init(n<<1, n<<1);
+	T = mzd_init(io.n, io.n<<1);
+	L = mzd_init(io.n, io.n<<1);
+	M = mzd_init(io.n<<1, io.n<<1);
 
 	// Defines the highest achieveable value for a column. This is 2^(n-1) for most
 	// except the identity matrix part.
-	maxValueTracker = (unsigned long long*)calloc(n<<1,sizeof(unsigned long long));
+	maxValueTracker = (unsigned long long*)calloc(io.n<<1,sizeof(unsigned long long));
 
-	for(i = 0; i < n<<1; i++)
+	for(i = 0; i < io.n<<1; i++)
 	{
-		if(i < n)
+		if(i < io.n)
 		{
 			maxValueTracker[i] = (1 << (i+1)) - 1;
 		}
 		else
 		{
-			maxValueTracker[i] = (1 << n) - 1;
+			maxValueTracker[i] = (1 << io.n) - 1;
 		}
 	}
 
@@ -129,48 +136,76 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 	// for(i=0;i<foundL.size();i++)
 	// 	print_matrix(foundL[i],"L");
 
-	// for(i = 0; i < n<<1; i++)
-	// 	printf("progressTracker[%lld] = %lld\n",i,progressTracker[i]);
+	// printf("progressTracker.start\t: [");
+	// for(i = 0; i < io.n<<1; i++)
+	// {
+	// 	if (i != ((io.n<<1)-1) )
+	// 		printf("%lld,",io.progressTracker.start[i]);
+	// 	else
+	// 		printf("%lld]\n",io.progressTracker.start[i]);
+	// }
+
+	// printf("progressTracker.end\t: [");
+	// for(i = 0; i < io.n<<1; i++)
+	// {
+	// 	if (i != ((io.n<<1)-1) )
+	// 		printf("%lld,",io.progressTracker.end[i]);
+	// 	else
+	// 		printf("%lld]\n",io.progressTracker.end[i]);
+	// }
 
 	// for(i = 0; i < n<<1; i++)
 	// 	printf("maxValueTracker[%lld] = %lld\n",i,maxValueTracker[i]);
 
 	while(true)
 	{
-		// if(progressTracker[6] == 0)
-		// {
-		// 	// printf("progressTracker = [");
-		// 	// for(i = 0; i < 2*n; i++)
-		// 	// {
-		// 	// 	if(i != (2*n - 1) )
-		// 	// 		printf("%d,", progressTracker[i]);
-		// 	// 	else
-		// 	// 		printf("%d] (%ld) // (%lld,%d)\n", progressTracker[i],foundMatrices->size(),column,maxValueTracker[column]);
-		// 	// }
-
-		// 	printf("time_updatedMat\t\t: %f\n", (double)(time_updatedMat[2]) / CLOCKS_PER_SEC);
-		// 	printf("time_gauss\t\t: %f\n", (double)(time_gauss[2]) / CLOCKS_PER_SEC);
-		// 	printf("time_matrixCheck\t: %f\n", (double)(time_matrixCheck[2]) / CLOCKS_PER_SEC);
-		// 	printf("time_find\t\t: %f\n", (double)(time_find[2]) / CLOCKS_PER_SEC);
-		// 	printf("time_tryCombine\t\t: %f\n", (double)(time_tryCombine[2]) / CLOCKS_PER_SEC);
-		// 	printf("~~~~~~~~~~~~~~~~~~~~~\n");
-		// }
-
-		if (progressTracker[column] > maxValueTracker[column])
+		//if(io.progressTracker.start[(io.n<<1)-(io.n>>1)] == 0)
+		if(io.progressTracker.start[15] == 0)
 		{
-			progressTracker[column] = 0;
+			printf("progressTracker\t\t: [");
+			for(i = 0; i < io.n<<1; i++)
+			{
+				if (i != ((io.n<<1)-1) )
+					printf("%lld,",io.progressTracker.start[i]);
+				else
+					printf("%lld] (%ld) // (%lld,%d)\n", io.progressTracker.start[i],io.foundL.size(),column,maxValueTracker[column]);
+			}
+
+			// printf("time_updatedMat\t\t: %f\n", (double)(time_updatedMat[2]) / CLOCKS_PER_SEC);
+			// printf("time_gauss\t\t: %f\n", (double)(time_gauss[2]) / CLOCKS_PER_SEC);
+			// printf("time_matrixCheck\t: %f\n", (double)(time_matrixCheck[2]) / CLOCKS_PER_SEC);
+			// printf("time_find\t\t: %f\n", (double)(time_find[2]) / CLOCKS_PER_SEC);
+			// printf("time_tryCombine\t\t: %f\n", (double)(time_tryCombine[2]) / CLOCKS_PER_SEC);
+			// printf("~~~~~~~~~~~~~~~~~~~~~\n");
+		}
+
+		if (io.progressTracker.start[column] > maxValueTracker[column])
+		{
+			if( memcmp(io.progressTracker.start,io.progressTracker.end,(io.n<<1)*sizeof(unsigned long long)) >= 0 )
+			{
+				// printf("progressTracker\t\t: [");
+				// for(i = 0; i < io.n<<1; i++)
+				// {
+				// 	if (i != ((io.n<<1)-1) )
+				// 		printf("%lld,",io.progressTracker.start[i]);
+				// 	else
+				// 		printf("%lld]\n",io.progressTracker.start[i]);
+				// }
+				break;
+			}
+			io.progressTracker.start[column] = 0;
 			clearColumn(L, column);
 			column--;
-			if(column == (unsigned long long)(-1))
+			if( column == (unsigned long long)(-1) )
 			{
 				break;
 			}
-			progressTracker[column]++;
+			io.progressTracker.start[column]++;
 			continue;
 		}
 	
 		//time_updatedMat[0] = clock();
-		updatedMat(progressTracker, column, L);
+		updatedMat(io.progressTracker.start, column, L);
 		//time_updatedMat[1] = clock();
 		//time_updatedMat[2] += (time_updatedMat[1] - time_updatedMat[0]);
 
@@ -188,9 +223,9 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 
 		// printf("(rank,column) = (%lld,%lld)\n", rank, column);
 
-		if( (!mzd_equal(T,L)) or ( ( column == (2*n-1) )  and (rank != n)  ) ) 
+		if( (!mzd_equal(T,L)) or ( ( column == (2*io.n-1) )  and (rank != io.n)  ) ) 
 		{
-			progressTracker[column]++;
+			io.progressTracker.start[column]++;
 			continue;
 		}
 
@@ -199,40 +234,40 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 		{
 			//time_matrixCheck[1] = clock();
 			//time_matrixCheck[2] += (time_matrixCheck[1] - time_matrixCheck[0]);
-			if( column == (2*n-1) )
+			if( column == (2*io.n-1) )
 			{
 				//time_find[0] = clock();
 				// Is the following if redundant? It make sence when foundL is predefined.
 				// It is nessessary to check this.
 				//if(find(foundL.begin(), foundL.end(), L) == foundL.end())
-				if(unique(foundL,L))
+				if(unique(io.foundL,L))
 				{
 					//time_find[1] = clock();
 					//time_find[2] += (time_find[1] - time_find[0]);
-					printf("progressTracker = [");
-					for(i = 0; i < 2*n; i++)
-					{
-						if(i != (2*n - 1) )
-							printf("%d,", progressTracker[i]);
-						else
-							printf("%d] (%ld)\n", progressTracker[i],foundL.size() + 1);
-					}
+					// printf("progressTracker = [");
+					// for(i = 0; i < 2*io.n; i++)
+					// {
+					// 	if(i != (2*io.n - 1) )
+					// 		printf("%d,", io.progressTracker.start[i]);
+					// 	else
+					// 		printf("%d] (%ld)\n", io.progressTracker.start[i],io.foundL.size() + 1);
+					// }
 					// printf(">> %d\n",__LINE__);
 					//time_tryCombine[0] = clock();
-					M = tryCombine(L,foundL);
+					M = tryCombine(L,io.foundL);
 					//time_tryCombine[1] = clock();
 					//time_tryCombine[2] += (time_tryCombine[1] - time_tryCombine[0]);
 
 					if (mzd_is_zero(M))
 					{
 						// printf(">> %d\n",__LINE__);
-						foundL.push_back(mzd_copy(NULL,L));
+						io.foundL.push_back(mzd_copy(NULL,L));
 					}
 					else
 					{
 						foundM.push_back(mzd_copy(NULL,M));
 						// printf(">> %d\n",__LINE__);
-						if(!full)
+						if(!io.full)
 						{
 							if(maxValueTracker)
 								free(maxValueTracker);
@@ -245,7 +280,7 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 						}
 					}
 				}
-				progressTracker[column]++;
+				io.progressTracker.start[column]++;
 			}
 			else
 			{
@@ -257,7 +292,7 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 		{
 			//time_matrixCheck[1] = clock();
 			//time_matrixCheck[2] += (time_matrixCheck[1] - time_matrixCheck[0]);
-			progressTracker[column]++;
+			io.progressTracker.start[column]++;
 		}
 	}
 
@@ -277,30 +312,31 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, u
 /*
  * Returns the map of Sigmas
  */
-map<unsigned long long, vector< mzd_t* > > findSigmas(unsigned long long *F, unsigned long long n)
+map<unsigned long long, vector< mzd_t* > > findSigmas(const E2P_parameters io)
 {
 	map<unsigned long long, vector< mzd_t* > > Sigmas;
 
 	unsigned long long xy = 0, Fxy = 0, i = 0, j = 0, k = 0, nbits = 0;
 	mzd_t* sigma;
 
-	sigma = mzd_init(n<<1, 1);
+	sigma = mzd_init(io.n<<1, 1);
 
-	for (i = 0; i < (unsigned long long)(1<<n); i++)
+	for (i = 0; i < (unsigned long long)(1<<io.n); i++)
 	{
-		for (j = i+1; j < (unsigned long long)(1<<n); j++)
+		for (j = i+1; j < (unsigned long long)(1<<io.n); j++)
 		{
+			//printf("j = %lld\n",j);
 			nbits = 0;
 			xy = i^j;
-			Fxy = (F[i]^F[j]);
+			Fxy = (io.sbox[i]^io.sbox[j]);
 
-			for(k = 0; k < n; k++)
+			for(k = 0; k < io.n; k++)
 			{
 				mzd_write_bit(sigma,k,0,(xy >> k) & 1);
-				mzd_write_bit(sigma,n+k,0,(Fxy >> k) & 1);
+				mzd_write_bit(sigma,io.n+k,0,(Fxy >> k) & 1);
 			}
 
-			for(k = 2*n - 1; k < 2*n; k--)
+			for(k = 2*io.n - 1; k < 2*io.n; k--)
 			{
 				if (mzd_read_bit(sigma,k,0) == 1)
 				{
@@ -320,12 +356,38 @@ map<unsigned long long, vector< mzd_t* > > findSigmas(unsigned long long *F, uns
 			// }
 
 			// Add only unique vectors
-			if (unique(Sigmas[nbits],sigma))
-			{
-				Sigmas[nbits].push_back(mzd_copy(NULL,sigma));
-			}
+			Sigmas[nbits].push_back(mzd_copy(NULL,sigma));
 		}
 	}
+
+	// for (i = 0; i < Sigmas.size(); i++)
+	// {
+	// 	printf("Sigmas[%lld] = %lld\n",i,Sigmas[i].size());
+	// }
+
+	// for (i = 0; i < Sigmas.size(); i++)
+	// {
+	// 	printf("i = %lld\n",i);
+	// 	for (j = 0; j < Sigmas[i].size(); j++)
+	// 	{
+	// 		k = j+1;
+	// 		while(k < Sigmas[i].size())
+	// 		{
+	// 			if(mzd_equal(Sigmas[i][j],Sigmas[i][k]))
+	// 			{
+	// 				mzd_free(Sigmas[i][k]);
+	// 				Sigmas[i].erase(Sigmas[i].begin() + k);
+	// 				k--;
+	// 			}
+	// 			k++;
+	// 		}
+	// 	}
+	// }
+
+	// for (i = 0; i < Sigmas.size(); i++)
+	// {
+	// 	printf("Sigmas[%lld] = %lld\n",i,Sigmas[i].size());
+	// }
 
 	mzd_free(sigma);
 
