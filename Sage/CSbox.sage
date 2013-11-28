@@ -199,7 +199,7 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
 
                         if not M.is_singular():
                             if full is True:
-                                foundM.append(M)
+                                foundM.append(copy(M))
                                 if debug:
                                     print "M\t\t: {0} ({1})".format([ZZ(g.list(),2) for g in foundM[-1].columns()],len(foundM))
                             else:
@@ -290,7 +290,7 @@ def cr_is_equivalent_to_permutation_new(self,**kwargs):
 
     for i in xrange(len(pt[1]),2*self._n):
         if i < self._n:
-            pt[1].append((1 << (i+1)) - 1)
+            pt[1].append(1 << i)
         else:
             pt[1].append((1 << self._n) - 1)
 

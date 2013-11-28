@@ -11,7 +11,7 @@ map<unsigned long long, vector< mzd_t* > >	findSigmas(const E2P_parameters);
 bool 										matrixCheck(const mzd_t*, unsigned long long, map<unsigned long long, vector< mzd_t* > >);
 void										print_matrix(const mzd_t*, string);
 void										print_Sigmas(map<unsigned long long, vector< mzd_t* > >);
-mzd_t* 										tryCombine(const mzd_t*, vector< mzd_t* >);
+vector< mzd_t* > 							tryCombine(const mzd_t*, const vector< mzd_t* >);
 int											time_to_finish(unsigned long long *, unsigned long long*, unsigned long long);
 template<typename VectorOrMap> int 			unique(VectorOrMap list, mzd_t* el);
 void										updatedMat(unsigned long long *, unsigned long long, mzd_t *);
@@ -115,10 +115,10 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 	//clock_t time_updatedMat[3] = {0,0,0}, time_gauss[3] = {0,0,0}, time_matrixCheck[3] = {0,0,0}, time_find[3] = {0,0,0}, time_tryCombine[3] = {0,0,0};
 
 	//  The working matrices
-	mzd_t *L, *M, *T;
+	mzd_t *L, *T;
 
 	// The found matrices will be stored here
-	vector< mzd_t* > foundM;
+	vector< mzd_t* > foundM, M;
 
 	// Additional variables
 	unsigned long long i = 0, rank = 0, column = 0;
@@ -129,7 +129,6 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 	// Initialises the empty matrices
 	T = mzd_init(io.n, io.n<<1);
 	L = mzd_init(io.n, io.n<<1);
-	M = mzd_init(io.n<<1, io.n<<1);
 
 	// Defines the highest achieveable value for a column. This is 2^(n-1) for most
 	// except the identity matrix part.
@@ -139,7 +138,7 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 	{
 		if(i < io.n)
 		{
-			maxValueTracker[i] = (1 << (i+1)) - 1;
+			maxValueTracker[i] = (1 << i);
 		}
 		else
 		{
@@ -176,7 +175,7 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 	// 		printf("%lld]\n",io.progressTracker.end[i]);
 	// }
 
-	// for(i = 0; i < n<<1; i++)
+	// for(i = 0; i < io.n<<1; i++)
 	// 	printf("maxValueTracker[%lld] = %lld\n",i,maxValueTracker[i]);
 
 	while(true)
@@ -226,16 +225,15 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 					else
 						fprintf(io.output,"%lld],", io.progressTracker.start[i]);
 				}
-
-				fprintf(io.output,"[");
-				for(i = 0; i < io.n<<1; i++)
-				{
-					if (i != ((io.n<<1)-1) )
-						fprintf(io.output,"%lld,",io.progressTracker.end[i]);
-					else
-						fprintf(io.output,"%lld]] (%ld) \n", io.progressTracker.end[i],io.foundL.size());
-				}
-				fflush(io.output);
+				// fprintf(io.output,"[");
+				// for(i = 0; i < io.n<<1; i++)
+				// {
+				// 	if (i != ((io.n<<1)-1) )
+				// 		fprintf(io.output,"%lld,",io.progressTracker.end[i]);
+				// 	else
+				// 		fprintf(io.output,"%lld]] (%ld) \n", io.progressTracker.end[i],io.foundL.size());
+				// }
+				// fflush(io.output);
 				break;
 			}
 			io.progressTracker.start[column] = 0;
@@ -268,7 +266,7 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 
 		// printf("(rank,column) = (%lld,%lld)\n", rank, column);
 
-		if( (!mzd_equal(T,L)) or ( ( column == (2*io.n-1) )  and (rank != io.n)  ) ) 
+		if( (!mzd_equal(T,L)) or ( ( column == ((io.n<<1)-1) )  and (rank != io.n)  ) ) 
 		{
 			io.progressTracker.start[column]++;
 			continue;
@@ -291,7 +289,7 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 					//time_find[2] += (time_find[1] - time_find[0]);
 					if(io.debug)
 					{
-						fprintf(io.output,"progressTracker\t: [");
+						fprintf(io.output,"L\t: [");
 						for(i = 0; i < io.n<<1; i++)
 						{
 							if (i != ((io.n<<1)-1) )
@@ -300,32 +298,47 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 								fprintf(io.output,"%lld] (%lld)\n", io.progressTracker.start[i], io.foundL.size()+1);
 						}
 						fflush(io.output);
+						// fprintf(stdout,"L\t: [");
+						// for(i = 0; i < io.n<<1; i++)
+						// {
+						// 	if (i != ((io.n<<1)-1) )
+						// 		fprintf(stdout,"%lld,",io.progressTracker.start[i]);
+						// 	else
+						// 		fprintf(stdout,"%lld] (%lld)\n", io.progressTracker.start[i], io.foundL.size()+1);
+						// }
+						// fflush(stdout);
 					}
-					//printf(">> %d\n",__LINE__);
-					//time_tryCombine[0] = clock();
+					
 					M = tryCombine(L,io.foundL);
-					//time_tryCombine[1] = clock();
-					//time_tryCombine[2] += (time_tryCombine[1] - time_tryCombine[0]);
 
-					if (mzd_is_zero(M))
+					io.foundL.push_back(mzd_copy(NULL,L));
+
+					if (M.size() != 0)
 					{
-						// printf(">> %d\n",__LINE__);
-						io.foundL.push_back(mzd_copy(NULL,L));
-					}
-					else
-					{
-						foundM.push_back(mzd_copy(NULL,M));
-						// printf(">> %d\n",__LINE__);
 						if(!io.full)
 						{
+							foundM.push_back(mzd_copy(NULL,M[0]));
+
 							if(maxValueTracker)
 								free(maxValueTracker);
 
 							mzd_free(T);
 							mzd_free(L);
-							mzd_free(M);
+
+							for(i=0;i<M.size();i++)
+								mzd_free(M[i]);
+							M.clear();
 
 							return foundM;
+						}
+						else
+						{
+							for(i=0;i<M.size();i++)
+							{
+								foundM.push_back(mzd_copy(NULL,M[i]));	
+								mzd_free(M[i]);
+							}
+							M.clear();
 						}
 					}
 				}
@@ -353,7 +366,6 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 
 	mzd_free(T);
 	mzd_free(L);
-	mzd_free(M);
 
  	return foundM;
 }
@@ -524,10 +536,11 @@ void print_Sigmas(map<unsigned long long, vector< mzd_t* > > Sigmas)
 /*
  * Try to combines two n x 2n matrices into one invertible 2n x 2n matrix.
  */
-mzd_t* tryCombine(const mzd_t *L, vector< mzd_t* > foundL)
+vector< mzd_t* > tryCombine(const mzd_t *L, vector< mzd_t* > foundL)
 {
 	unsigned long long rank = 0, k = 0, n = L->nrows;
 	mzd_t *M = NULL, *T = NULL;
+	vector< mzd_t* > foundM;
 
 	M = mzd_init(n<<1,n<<1);
 	T = mzd_init(n<<1,n<<1);
@@ -541,15 +554,14 @@ mzd_t* tryCombine(const mzd_t *L, vector< mzd_t* > foundL)
 
 		if( rank == (n<<1) )
 		{
-			mzd_free(T);
-			return M;
+			foundM.push_back(mzd_copy(NULL,M));
 		}
 	}
 
 	mzd_free(T);
 	mzd_free(M);
 
-	return mzd_init(n<<1,n<<1);
+	return foundM;
 }
 
 /*

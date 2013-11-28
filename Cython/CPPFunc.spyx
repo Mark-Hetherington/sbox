@@ -26,6 +26,7 @@ import os
 from sage.all import ZZ
 from sage.all import GF
 from sage.all import matrix
+from sage.all import copy
 
 from sage.libs.m4ri cimport *
 
@@ -173,7 +174,7 @@ def cpp_is_equivalent_to_permutation(**kwargs):
             for j in xrange(n<<1):
                 M[i,j] = mzd_read_bit(cM[m],i,j)
 
-        foundM.append(M)
+        foundM.append(copy(M))
 
         mzd_free(cM[m])
 
