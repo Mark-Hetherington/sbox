@@ -93,7 +93,7 @@ def cpp_cycles(pSbox,length):
 
     return ret
 
-def cpp_is_equivalent_to_permutation(queue):
+def cpp_is_equivalent_to_permutation(**kwargs):
     r""" 
     Find matrix or matrices equivalent to a permutation.
 
@@ -107,18 +107,21 @@ def cpp_is_equivalent_to_permutation(queue):
         - ``n``      -- length of input bits
         - ``full``   -- if ``True`` return all matrices which give CCZ-equivalent permutations
     """
-    args   = queue.get()
-    pSbox  = args[0]
-    length = args[1]
-    n      = args[2]
-    foundL = args[3]
-    pt     = args[4]
-    full   = args[5]
-    ncpu   = args[6]
-    cpu    = args[7]
-    
-    debug  = args[8]
+    # Read input parameters
+    pSbox  = kwargs.get('sbox',None)
+    length = kwargs.get('length',None)
+    n      = kwargs.get('n',None)
+    foundL = kwargs.get('foundL',None)
+    pt     = kwargs.get('pt',None)
+    full   = kwargs.get('full',None)
+    ncpu   = kwargs.get('ncpu',None)
+    cpu    = kwargs.get('cpu',None)
+    debug  = kwargs.get('debug',None)
 
+    if None in [pSbox,length,n,foundL,pt,full,ncpu,cpu,debug]:
+        raise TypeError("Some of mandatory parameters are missed")
+
+    # Define some variables 
     cdef E2P_parameters io
 
     io.sbox = <unsigned long long *>calloc(length,sizeof(unsigned long long))
@@ -127,19 +130,23 @@ def cpp_is_equivalent_to_permutation(queue):
 
     cdef vector[mzd_t*] cM
 
+    # Convert Python S-box to C++ version
     for i in xrange(length):
         io.sbox[i] = pSbox[i]
 
+    # Convert Python found L function from the list to C++ the matrix
     for l in xrange(len(foundL)):
         io.foundL.push_back(mzd_init(n, n<<1))
         for i in xrange(n):
             for j in xrange(n<<1):
                 mzd_write_bit(io.foundL[l],i,j,(foundL[l][j]>>i) & 1)
 
+    # Initialize progress tracker
     for i in xrange(n<<1):
         io.progressTracker.start[i] = pt[0][i]
         io.progressTracker.end[i]   = pt[1][i]
 
+    # Initialize additional parameters
     io.length = length
     io.n = n
     io.full = full
@@ -147,14 +154,17 @@ def cpp_is_equivalent_to_permutation(queue):
     io.ncpu = ncpu
     io.cpu = cpu
 
+    # Find a linear matrix
     cM = is_E2P(io)
 
+    # Delete unused parameters
     free(io.sbox)
     free(io.progressTracker.start)
     for i in xrange(io.foundL.size()):
         mzd_free(io.foundL[i])
     io.foundL.clear()
 
+    # Extract all found matrices (if full is True)
     foundM = []
     M = matrix(GF(2),n<<1,n<<1)
 
@@ -167,11 +177,13 @@ def cpp_is_equivalent_to_permutation(queue):
 
         mzd_free(cM[m])
 
+    # Delete vector of matrices (matrices themselves are deleted in the cycle)
     cM.clear()
 
+    # Return different values based on input parameters
     if foundM == []:
-        queue.put([]) 
+        return []
     elif full is False:
-        queue.put(foundM[0])
+        return foundM[0]
     else:
-        queue.put(foundM)
+        return foundM

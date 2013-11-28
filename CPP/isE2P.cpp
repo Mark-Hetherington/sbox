@@ -12,6 +12,7 @@ bool 										matrixCheck(const mzd_t*, unsigned long long, map<unsigned long l
 void										print_matrix(const mzd_t*, string);
 void										print_Sigmas(map<unsigned long long, vector< mzd_t* > >);
 mzd_t* 										tryCombine(const mzd_t*, vector< mzd_t* >);
+int											time_to_finish(unsigned long long *, unsigned long long*, unsigned long long);
 template<typename VectorOrMap> int 			unique(VectorOrMap list, mzd_t* el);
 void										updatedMat(unsigned long long *, unsigned long long, mzd_t *);
 
@@ -214,16 +215,27 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 
 		if (io.progressTracker.start[column] > maxValueTracker[column])
 		{
-			if( memcmp(io.progressTracker.start,io.progressTracker.end,(io.n<<1)*sizeof(unsigned long long)) >= 0 )
+			//if( memcmp(io.progressTracker.start,io.progressTracker.end,(io.n<<1)*sizeof(unsigned long long)) >= 0 )
+			if( time_to_finish(io.progressTracker.start,io.progressTracker.end,column) )
 			{
-				// printf("progressTracker\t\t: [");
-				// for(i = 0; i < io.n<<1; i++)
-				// {
-				// 	if (i != ((io.n<<1)-1) )
-				// 		printf("%lld,",io.progressTracker.start[i]);
-				// 	else
-				// 		printf("%lld]\n",io.progressTracker.start[i]);
-				// }
+				fprintf(io.output,"progressTracker\t: [[");
+				for(i = 0; i < io.n<<1; i++)
+				{
+					if (i != ((io.n<<1)-1) )
+						fprintf(io.output,"%lld,",io.progressTracker.start[i]);
+					else
+						fprintf(io.output,"%lld],", io.progressTracker.start[i]);
+				}
+
+				fprintf(io.output,"[");
+				for(i = 0; i < io.n<<1; i++)
+				{
+					if (i != ((io.n<<1)-1) )
+						fprintf(io.output,"%lld,",io.progressTracker.end[i]);
+					else
+						fprintf(io.output,"%lld]] (%ld) \n", io.progressTracker.end[i],io.foundL.size());
+				}
+				fflush(io.output);
 				break;
 			}
 			io.progressTracker.start[column] = 0;
@@ -287,6 +299,7 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 							else
 								fprintf(io.output,"%lld] (%lld)\n", io.progressTracker.start[i], io.foundL.size()+1);
 						}
+						fflush(io.output);
 					}
 					//printf(">> %d\n",__LINE__);
 					//time_tryCombine[0] = clock();
@@ -537,6 +550,19 @@ mzd_t* tryCombine(const mzd_t *L, vector< mzd_t* > foundL)
 	mzd_free(M);
 
 	return mzd_init(n<<1,n<<1);
+}
+
+/*
+ * Find the element in the list. Return 1 if found and 0 otherwise.
+ */
+int time_to_finish(unsigned long long *current, unsigned long long *end, unsigned long long cols)
+{
+	unsigned long long i = 0, ret = 1;
+
+	for(i=0;i<cols;i++)
+		ret &= (current[i] >= end[i]);
+
+	return ret;
 }
 
 /*
