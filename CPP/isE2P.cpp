@@ -153,6 +153,9 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 			break;
 		}
 
+	for(i = 0; i < column; i++)
+		updatedMat(io.progressTracker.start, i, L);
+
 	// Several prints for debugging
 	// for(i=0;i<foundL.size();i++)
 	// 	print_matrix(foundL[i],"L");
@@ -225,15 +228,15 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 					else
 						fprintf(io.output,"%lld],", io.progressTracker.start[i]);
 				}
-				// fprintf(io.output,"[");
-				// for(i = 0; i < io.n<<1; i++)
-				// {
-				// 	if (i != ((io.n<<1)-1) )
-				// 		fprintf(io.output,"%lld,",io.progressTracker.end[i]);
-				// 	else
-				// 		fprintf(io.output,"%lld]] (%ld) \n", io.progressTracker.end[i],io.foundL.size());
-				// }
-				// fflush(io.output);
+				fprintf(io.output,"[");
+				for(i = 0; i < io.n<<1; i++)
+				{
+					if (i != ((io.n<<1)-1) )
+						fprintf(io.output,"%lld,",io.progressTracker.end[i]);
+					else
+						fprintf(io.output,"%lld]] (%ld) \n", io.progressTracker.end[i],io.foundL.size());
+				}
+				fflush(io.output);
 				break;
 			}
 			io.progressTracker.start[column] = 0;
@@ -572,7 +575,7 @@ int time_to_finish(unsigned long long *current, unsigned long long *end, unsigne
 	unsigned long long i = 0, ret = 1;
 
 	for(i=0;i<cols;i++)
-		ret &= (current[i] >= end[i]);
+		ret &= (current[i] > end[i]);
 
 	return ret;
 }
