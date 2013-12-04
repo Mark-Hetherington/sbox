@@ -56,6 +56,7 @@ cdef extern from "isE2P.h":
         unsigned long long cpu
         unsigned long long debug
         FILE               *output
+        unsigned long long mvc
 
     vector[mzd_t*] is_E2P(E2P_parameters io)
 
@@ -118,8 +119,9 @@ def cpp_is_equivalent_to_permutation(**kwargs):
     ncpu   = kwargs.get('ncpu',None)
     cpu    = kwargs.get('cpu',None)
     debug  = kwargs.get('debug',None)
+    mvc    = kwargs.get('mvc',None)
 
-    if None in [pSbox,length,n,foundL,pt,full,ncpu,cpu,debug]:
+    if None in [pSbox,length,n,foundL,pt,full,ncpu,cpu,debug,mvc]:
         raise TypeError("Some of mandatory parameters are missed")
 
     # Define some variables 
@@ -154,6 +156,7 @@ def cpp_is_equivalent_to_permutation(**kwargs):
     io.debug = debug
     io.ncpu = ncpu
     io.cpu = cpu
+    io.mvc = mvc
 
     # Find a linear matrix
     cM = is_E2P(io)

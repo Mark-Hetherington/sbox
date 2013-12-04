@@ -5,16 +5,16 @@
 //============================================================================
 #include "isE2P.h"
 
-void										clearColumn(mzd_t *, unsigned long long column);
-vector< mzd_t* >							findMatrix(map<unsigned long long, vector< mzd_t* > >, E2P_parameters);
+void										clearColumn(mzd_t *, const unsigned long long);
+vector< mzd_t* >							findMatrix(map<unsigned long long, vector< mzd_t* > >, E2P_parameters&);
 map<unsigned long long, vector< mzd_t* > >	findSigmas(const E2P_parameters);
-bool 										matrixCheck(const mzd_t*, unsigned long long, map<unsigned long long, vector< mzd_t* > >);
-void										print_matrix(const mzd_t*, string);
+bool 										matrixCheck(const mzd_t*, const unsigned long long, map<unsigned long long, vector< mzd_t* > >);
+void										print_matrix(const mzd_t*, const string);
 void										print_Sigmas(map<unsigned long long, vector< mzd_t* > >);
 vector< mzd_t* > 							tryCombine(const mzd_t*, const vector< mzd_t* >);
-int											time_to_finish(unsigned long long *, unsigned long long*, unsigned long long);
-template<typename VectorOrMap> int 			unique(VectorOrMap list, mzd_t* el);
-void										updatedMat(unsigned long long *, unsigned long long, mzd_t *);
+int											time_to_finish(const unsigned long long *, const unsigned long long*, const E2P_parameters);
+template<typename VectorOrMap> int 			unique(VectorOrMap list, const mzd_t* el);
+void										updatedMat(const unsigned long long *, const unsigned long long, mzd_t *);
 
 /*
  * The main function. Interface between Cython and C++.
@@ -101,7 +101,7 @@ vector< mzd_t* > is_E2P(E2P_parameters io)
 /*
  * Clears the column of the matrix
  */
-void clearColumn(mzd_t *L, unsigned long long column)
+void clearColumn(mzd_t *L, const unsigned long long column)
 {
 	unsigned long long i = 0;
 
@@ -109,7 +109,7 @@ void clearColumn(mzd_t *L, unsigned long long column)
 		mzd_write_bit(L,i,column,0);
 }
 
-vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E2P_parameters io)
+vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E2P_parameters &io)
 {
 	// Variables for testing performance
 	//clock_t time_updatedMat[3] = {0,0,0}, time_gauss[3] = {0,0,0}, time_matrixCheck[3] = {0,0,0}, time_find[3] = {0,0,0}, time_tryCombine[3] = {0,0,0};
@@ -154,7 +154,15 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 		}
 
 	for(i = 0; i < column; i++)
+	{
 		updatedMat(io.progressTracker.start, i, L);
+
+		if(!matrixCheck(L, i, Sigmas))
+		{
+			column = i;
+			break;
+		}
+	}
 
 	// Several prints for debugging
 	// for(i=0;i<foundL.size();i++)
@@ -185,7 +193,7 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 	{
 		if(io.debug)
 		{
-			if(io.progressTracker.start[(io.n<<1)-(io.n>>1)] == 0)
+			if(io.progressTracker.start[(io.n<<1)-(io.n>>1)-1] == 0)
 			{
 				fprintf(io.output,"progressTracker\t: [[");
 				for(i = 0; i < io.n<<1; i++)
@@ -202,7 +210,7 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 					if (i != ((io.n<<1)-1) )
 						fprintf(io.output,"%lld,",io.progressTracker.end[i]);
 					else
-						fprintf(io.output,"%lld]] (%ld) // (%lld,%d)\n", io.progressTracker.end[i],io.foundL.size(),column,maxValueTracker[column]);
+						fprintf(io.output,"%lld]] (%ld) // (%lld,%d,%d)\n", io.progressTracker.end[i],io.foundL.size(),column,maxValueTracker[column],__LINE__);
 				}
 				fflush(io.output);
 
@@ -217,39 +225,44 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 
 		if (io.progressTracker.start[column] > maxValueTracker[column])
 		{
-			//if( memcmp(io.progressTracker.start,io.progressTracker.end,(io.n<<1)*sizeof(unsigned long long)) >= 0 )
-			if( time_to_finish(io.progressTracker.start,io.progressTracker.end,column) )
+			if( (io.mvc != 0) && time_to_finish(io.progressTracker.start,io.progressTracker.end,io) )
 			{
-				fprintf(io.output,"progressTracker\t: [[");
-				for(i = 0; i < io.n<<1; i++)
+				if(io.debug)
 				{
-					if (i != ((io.n<<1)-1) )
-						fprintf(io.output,"%lld,",io.progressTracker.start[i]);
-					else
-						fprintf(io.output,"%lld],", io.progressTracker.start[i]);
+					fprintf(io.output,"progressTracker\t: [[");
+					for(i = 0; i < io.n<<1; i++)
+					{
+						if (i != ((io.n<<1)-1) )
+							fprintf(io.output,"%lld,",io.progressTracker.start[i]);
+						else
+							fprintf(io.output,"%lld],", io.progressTracker.start[i]);
+					}
+					fprintf(io.output,"[");
+					for(i = 0; i < io.n<<1; i++)
+					{
+						if (i != ((io.n<<1)-1) )
+							fprintf(io.output,"%lld,",io.progressTracker.end[i]);
+						else
+							fprintf(io.output,"%lld]] (%ld,%d) \n", io.progressTracker.end[i],io.foundL.size(),__LINE__);
+					}
+					fflush(io.output);
 				}
-				fprintf(io.output,"[");
-				for(i = 0; i < io.n<<1; i++)
-				{
-					if (i != ((io.n<<1)-1) )
-						fprintf(io.output,"%lld,",io.progressTracker.end[i]);
-					else
-						fprintf(io.output,"%lld]] (%ld) \n", io.progressTracker.end[i],io.foundL.size());
-				}
-				fflush(io.output);
 				break;
 			}
+
 			io.progressTracker.start[column] = 0;
 			clearColumn(L, column);
 			column--;
+
 			if( column == (unsigned long long)(-1) )
 			{
 				break;
 			}
 			io.progressTracker.start[column]++;
+
 			continue;
 		}
-	
+
 		//time_updatedMat[0] = clock();
 		updatedMat(io.progressTracker.start, column, L);
 		//time_updatedMat[1] = clock();
@@ -280,7 +293,7 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 		{
 			//time_matrixCheck[1] = clock();
 			//time_matrixCheck[2] += (time_matrixCheck[1] - time_matrixCheck[0]);
-			if( column == (2*io.n-1) )
+			if( column == ((io.n<<1)-1) )
 			{
 				//time_find[0] = clock();
 				// Is the following if redundant? It make sence when foundL is predefined.
@@ -298,18 +311,9 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 							if (i != ((io.n<<1)-1) )
 								fprintf(io.output,"%lld,",io.progressTracker.start[i]);
 							else
-								fprintf(io.output,"%lld] (%lld)\n", io.progressTracker.start[i], io.foundL.size()+1);
+								fprintf(io.output,"%lld] (%lld,%d)\n", io.progressTracker.start[i], io.foundL.size()+1,__LINE__);
 						}
 						fflush(io.output);
-						// fprintf(stdout,"L\t: [");
-						// for(i = 0; i < io.n<<1; i++)
-						// {
-						// 	if (i != ((io.n<<1)-1) )
-						// 		fprintf(stdout,"%lld,",io.progressTracker.start[i]);
-						// 	else
-						// 		fprintf(stdout,"%lld] (%lld)\n", io.progressTracker.start[i], io.foundL.size()+1);
-						// }
-						// fflush(stdout);
 					}
 					
 					M = tryCombine(L,io.foundL);
@@ -349,7 +353,6 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 			}
 			else
 			{
-				// printf(">> %d\n",__LINE__);
 				column++;
 			}
 		}
@@ -461,7 +464,7 @@ map<unsigned long long, vector< mzd_t* > > findSigmas(const E2P_parameters io)
 /**
  * Iterates through the columns of a matrix, and checks if they all are accepted with their corresponding sigmas
  */
-bool matrixCheck(const mzd_t *L, unsigned long long column, map<unsigned long long, vector< mzd_t* > > Sigmas)
+bool matrixCheck(const mzd_t *L, const unsigned long long column, map<unsigned long long, vector< mzd_t* > > Sigmas)
 {
 	unsigned long long s = 0;
 	mzd_t *T = NULL;
@@ -491,7 +494,7 @@ bool matrixCheck(const mzd_t *L, unsigned long long column, map<unsigned long lo
 }
 
 // Print the given matrix.
-void print_matrix(const mzd_t *L, string str)
+void print_matrix(const mzd_t *L, const string str)
 {
 	unsigned long long i = 0, j = 0;
 
@@ -508,7 +511,7 @@ void print_matrix(const mzd_t *L, string str)
 }
 
 // Print Sigmas
-void print_Sigmas(map<unsigned long long, vector< mzd_t* > > Sigmas)
+void print_Sigmas(map<unsigned long long, const vector< mzd_t* > > Sigmas)
 {
 	unsigned long long i = 0, j = 0, s = 0, m = 0;
 
@@ -570,12 +573,12 @@ vector< mzd_t* > tryCombine(const mzd_t *L, vector< mzd_t* > foundL)
 /*
  * Find the element in the list. Return 1 if found and 0 otherwise.
  */
-int time_to_finish(unsigned long long *current, unsigned long long *end, unsigned long long cols)
+int time_to_finish(const unsigned long long *current, const unsigned long long *end, const E2P_parameters io)
 {
 	unsigned long long i = 0, ret = 1;
 
-	for(i=0;i<cols;i++)
-		ret &= (current[i] > end[i]);
+	for(i=0;i<io.mvc;i++)
+		ret &= (current[i] >= end[i]);
 
 	return ret;
 }
@@ -584,7 +587,7 @@ int time_to_finish(unsigned long long *current, unsigned long long *end, unsigne
  * Find the element in the list. Return 1 if found and 0 otherwise.
  */
 template <typename VectorOrMap>
-int unique(VectorOrMap list, mzd_t* el)
+int unique(VectorOrMap list, const mzd_t *el)
 {
     for(typename VectorOrMap::iterator it = list.begin(); it != list.end(); ++it )
     	if(mzd_equal(*it,el))
@@ -596,7 +599,7 @@ int unique(VectorOrMap list, mzd_t* el)
 /*
  * Updates the column of the matrix
  */
-void updatedMat(unsigned long long *progressTracker, unsigned long long column, mzd_t *L)
+void updatedMat(const unsigned long long *progressTracker, const unsigned long long column, mzd_t *L)
 {
 	unsigned long long i = 0;
 

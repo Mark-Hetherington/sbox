@@ -98,13 +98,38 @@ def test_equivalence(**kargs):
 
     S=Sbox(n=bits,m=bits)
 
+    # cnt = 0
 
-    F="g*x^3+g^5*x^10+g^4*x^24" # for n=6
+    # while(true):
+    #     S.random_substitution()
+
+    #     F=S.interpolation_polynomial()
+    
+    #     M1 = S.is_equivalent_to_permutation(F=F,full=True)
+    #     M2 = S.is_equivalent_to_permutation_new(F=F,full=True)
+
+    #     if len(M1) != len(M2):
+    #         print "M1:\n{0}".format(M1)
+    #         print "M2:\n{0}".format(M2)
+    #         break            
+
+    #     for m in M1:
+    #         if not m in M2:
+    #             print "M1:\n{0}".format(M1)
+    #             print "M2:\n{0}".format(M2)
+    #             break                
+
+    #     cnt += 1
+    #     print "cnt = {0}".format(cnt)
+    # return
+
+    #F="g*x^3+g^5*x^10+g^4*x^24" # for n=6
+    F="x^3+g^4*x^10+g^3*x^24" # for n=6
     #F="g*x^3+g^257*x^514+g^256*x^528" # for n=12
 
     #M1 = S.is_equivalent_to_permutation(F=F,debug=True,full=True)
     #M2 = S.is_equivalent_to_permutation_new(F=F,pt=[[0,1,2,0,4,8,16,27,32,64,128,256,512,1024,267,0,0,0,0,0,0,0,0,0],[]])
-    M2 = S.is_equivalent_to_permutation_new(F=F)
+    M2 = S.is_equivalent_to_permutation_new(F=F,debug=True)
     #M2 = S.is_equivalent_to_permutation_new(F=F)
 
     # for i,M in enumerate(M1):

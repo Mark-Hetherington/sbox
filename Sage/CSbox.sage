@@ -225,8 +225,7 @@ def cr_is_equivalent_to_permutation(self,**kwargs):
     if full is True:
         return foundM
     elif stop == 0:
-        return M    # Which value is correct? 
-        return None # 
+        return []
     else:
         return M
 
@@ -286,19 +285,23 @@ def cr_is_equivalent_to_permutation_new(self,**kwargs):
     if len(pt) != 2:
         pt = [[],[]]
 
-    pt[0] = pt[0] + [0 for _ in xrange(2*self._n - len(pt[0]))]
+    #mvc = len(pt[1]) if len(pt[1]) != 0 else 2*self._n
+    mvc = len(pt[1])
 
-    for i in xrange(len(pt[1]),2*self._n):
-        if i < self._n:
-            pt[1].append(1 << i)
-        else:
-            pt[1].append((1 << self._n) - 1)
+    pt[0] = pt[0] + [0 for _ in xrange(2*self._n - len(pt[0]))]
+    pt[1] = pt[1] + [0 for _ in xrange(2*self._n - len(pt[1]))]
+
+    # for i in xrange(len(pt[1]),2*self._n):
+    #     if i < self._n:
+    #         pt[1].append(1 << i)
+    #     else:
+    #         pt[1].append((1 << self._n) - 1)
 
     # Generate new S-box based on polynomial
     self.generate_sbox(method='polynomial',G=F)
 
     # Find the linear function via C++ function
-    M = cpp_is_equivalent_to_permutation(sbox=self._S, length=self._length, n=self._n, foundL=foundL, pt=pt, full=full, ncpu=sage.parallel.ncpus.ncpus(), cpu=0, debug=debug)
+    M = cpp_is_equivalent_to_permutation(sbox=self._S, length=self._length, n=self._n, foundL=foundL, pt=pt, full=full, ncpu=sage.parallel.ncpus.ncpus(), cpu=0, debug=debug, mvc = mvc)
 
     # Load previous S-box and polynomial
     if S is not None:

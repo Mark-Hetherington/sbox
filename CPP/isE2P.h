@@ -49,6 +49,7 @@ struct E2P_parameters
 	unsigned long long cpu;
 	unsigned long long debug;
 	FILE *output;
+	unsigned long long mvc;
 };
 
 vector< mzd_t* > is_E2P(E2P_parameters io);
