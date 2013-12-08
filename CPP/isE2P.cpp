@@ -382,14 +382,39 @@ vector< mzd_t* > findMatrix(map<unsigned long long, vector< mzd_t* > > Sigmas, E
 map<unsigned long long, vector< mzd_t* > > findSigmas(const E2P_parameters io)
 {
 	map<unsigned long long, vector< mzd_t* > > Sigmas;
-
-	unsigned long long xy = 0, Fxy = 0, i = 0, j = 0, k = 0, nbits = 0;
+	map<unsigned long long, vector<unsigned long long> > hashes;
+	vector<unsigned long long>::iterator it;
 	mzd_t* sigma;
+
+	unsigned long long xy = 0, Fxy = 0, i = 0, j = 0, k = 0, nbits = 0, hash = 0, barWidth = 70, position = 0;
+	double progress = 0.0;
 
 	sigma = mzd_init(io.n<<1, 1);
 
-	for (i = 0; i < (unsigned long long)(1<<io.n); i++)
+	if(io.debug)
+		printf("Find sigmas:\n");
+
+	for (i = 0; i < ((unsigned long long)1)<<io.n; i++)
 	{
+		if(io.debug)
+		{
+		    cout << "[";
+		    position = barWidth * progress;
+		    for (k = 0; k < barWidth; k++)
+		    {
+		        if (k < position)
+		        	cout << "=";
+		        else
+		        	if (k == position)
+		        		cout << ">";
+		        	else
+		        		cout << " ";
+		    }
+		    cout << "] " << int(progress * 100.0) << " %\r";
+		    cout.flush();
+		    progress = (double)i/(1<<io.n);
+		}
+
 		for (j = i+1; j < (unsigned long long)(1<<io.n); j++)
 		{
 			//printf("j = %lld\n",j);
@@ -422,9 +447,41 @@ map<unsigned long long, vector< mzd_t* > > findSigmas(const E2P_parameters io)
 			// 	printf("================\n");
 			// }
 
-			// Add only unique vectors
-			Sigmas[nbits].push_back(mzd_copy(NULL,sigma));
+			hash = mzd_hash(sigma);
+			it = hashes[nbits].begin();
+
+			while(true)
+			{
+				it = find(it, hashes[nbits].end(), hash);
+
+				if ( it == hashes[nbits].end())
+				{
+					Sigmas[nbits].push_back(mzd_copy(NULL,sigma));
+					hashes[nbits].push_back(hash);
+					break;
+				}
+				else
+				{
+					if(mzd_equal(Sigmas[nbits][it - hashes[nbits].begin()],sigma))
+						break;
+					else
+						it++;
+				}
+			}
+
+			// // Add only unique vectors
+			// if (unique(Sigmas[nbits],sigma))
+			// 	Sigmas[nbits].push_back(mzd_copy(NULL,sigma));
 		}
+	}
+
+	if(io.debug)
+	{
+	    cout << "[";
+	    for (k = 0; k < barWidth; k++)
+	    	cout << "=";
+	    cout << "] " << 100 << " %\n";
+	    cout.flush();
 	}
 
 	// for (i = 0; i < Sigmas.size(); i++)
@@ -455,6 +512,8 @@ map<unsigned long long, vector< mzd_t* > > findSigmas(const E2P_parameters io)
 	// {
 	// 	printf("Sigmas[%lld] = %lld\n",i,Sigmas[i].size());
 	// }
+
+	hashes.clear();
 
 	mzd_free(sigma);
 
@@ -511,7 +570,7 @@ void print_matrix(const mzd_t *L, const string str)
 }
 
 // Print Sigmas
-void print_Sigmas(map<unsigned long long, const vector< mzd_t* > > Sigmas)
+void print_Sigmas(map<unsigned long long, vector< mzd_t* > > Sigmas)
 {
 	unsigned long long i = 0, j = 0, s = 0, m = 0;
 
@@ -519,23 +578,23 @@ void print_Sigmas(map<unsigned long long, const vector< mzd_t* > > Sigmas)
 
 	for (s = 0; s < Sigmas.size(); s++)
 	{
-		cout << "Sigmas[" << s << "] (" << Sigmas[s].size() << ")" << " = [";
-		for (m = 0; m < Sigmas[s].size(); m++)
-		{
-			cout << "[";
-			for (i = 0; i < Sigmas[s][m]->nrows; i++)
-			{
-				for(j = 0; j < Sigmas[s][m]->ncols; j++)
-				{
-					cout << mzd_read_bit(Sigmas[s][m],i,j) << " ";
-				}
-			}
-			if (m != Sigmas[s].size()-1)
-				cout << "],";
-			else
-				cout << "]";
-		}
-		cout << "]" << endl;
+		cout << "Sigmas[" << s << "]: " << Sigmas[s].size() << endl;
+		// for (m = 0; m < Sigmas[s].size(); m++)
+		// {
+		// 	cout << "[";
+		// 	for (i = 0; i < Sigmas[s][m]->nrows; i++)
+		// 	{
+		// 		for(j = 0; j < Sigmas[s][m]->ncols; j++)
+		// 		{
+		// 			cout << mzd_read_bit(Sigmas[s][m],i,j) << " ";
+		// 		}
+		// 	}
+		// 	if (m != Sigmas[s].size()-1)
+		// 		cout << "],";
+		// 	else
+		// 		cout << "]";
+		// }
+		// cout << "]" << endl;
 	}
 }
 
