@@ -20,6 +20,7 @@ AUTHORS:
 #clang c++
 #cargs -Wall -Werror
 #cinclude $SBOX_ROOT/CPP/
+#clib givaro
 #cfile ./CPP/Cycles.cpp ./CPP/isE2P.cpp
 
 import os
