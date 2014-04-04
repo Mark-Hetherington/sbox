@@ -97,14 +97,14 @@ def test_bdd(**kargs):
     bits=kargs.get('bits',3)
 
     #S=Sbox(n=bits,m=bits,sbox=AES_sbox)
-    S=Sbox(n=bits,m=bits)
+    S=Sbox(n=bits,m=bits,sbox=[5, 12, 8, 15, 9, 7, 2, 11, 6, 10, 0, 13, 14, 4, 3, 1])
 
-    S.random_permutation()
+    #S.random_permutation()
     #S.random_substitution()
     #S.set_sbox([1,2,3,0])
 
-    #print "Sbox\t\t\t\t= {0}".format(S.get_sbox())
+    print "Sbox\t\t\t\t= {0}".format(S.get_sbox())
 
-    S.bdd()
+    S.bdd(file="Test.bdd",reverse=True)
                 
     return 0

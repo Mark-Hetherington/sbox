@@ -54,7 +54,8 @@ def cr_bdd(self,**kargs):
 
     INPUT::
         
-    - ``file`` -- path to the file with a BDD (default is ``bdd.dot``)
+        - ``file`` (default: ``graph.bdd``) -- path to the file with a BDD
+        - ``reverse`` (default: False) -- if Ture reverse bits of input and output of the S-box
 
     EXAMPLE::
 
@@ -84,6 +85,7 @@ def cr_bdd(self,**kargs):
         16  : 59.842752
         17  : 418.048255
     """
+    reverse = kargs.get('reverse',False)
     tree = {0:{2:[None,None]},self._m+self._n:{1:[0,0]}}
     ID = 3
 
@@ -91,7 +93,10 @@ def cr_bdd(self,**kargs):
         tree[i] = {}
 
     for i,s in enumerate(self._S):
-        chain = ZZ(i).digits(2,padto=self._n)[::-1] + ZZ(s).digits(2,padto=self._m)[::-1]
+        if reverse:
+            chain = ZZ(i).digits(2,padto=self._n) + ZZ(s).digits(2,padto=self._m)
+        else:
+            chain = ZZ(i).digits(2,padto=self._n)[::-1] + ZZ(s).digits(2,padto=self._m)[::-1]
 
         state = 2
 
@@ -109,19 +114,22 @@ def cr_bdd(self,**kargs):
                     tree[l][state][c] = ID
                     tree[l+1][ID] = [None,None]
                     ID += 1
-            
+
             state = tree[l][state][c]
 
     # print "tree = {0}".format(tree)
 
     # return
 
-    string = {1:"1",2:"{0}".format(self._n+self._m+1)}
+    string = {1:"{0}".format(self._n+self._m),2:"1",3:"{0}".format(self._n+self._m+1)}
 
-    offset = 3
+    offset = 4
 
     for l in tree.iterkeys():
-        string[offset+l] = "{0}:".format(l)
+        if l < (self._n + self._m):
+            string[offset+l] = "{0}:".format(l)
+        else:
+            string[offset+l] = ":"
 
         for ID in tree[l].iterkeys():
             if tree[l][ID][0] is None:
