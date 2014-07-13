@@ -22,9 +22,11 @@ load ./Sbox.sage
 def test_temp(**kargs):
     bits=kargs.get('bits',3)
 
-    S=Sbox(n=3,m=1)
+    S=Sbox(n=5,m=2)
 
     S.generate_sbox(method='polynomial',G='x^3')
+
+    print "sbox\t: {0}".format(S.get_sbox())
 
     return 
 

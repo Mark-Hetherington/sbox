@@ -347,7 +347,7 @@ def gen_EA(self, **kwargs):
 
         self._S[i] = self._K(self._S[i].list()[::-1]) # reverse
         self._S[i] = G.subs(self._S[i])
-        self._S[i] = matrix(GF(2),self._m,1,self._S[i]._vector_().list()[::-1]) # reverse
+        self._S[i] = matrix(GF(2),self._m,1,self._S[i]._vector_().list()[::-1][-self._m:]) # reverse
 
         if M1 is not None:
             self._S[i] = M1*self._S[i]

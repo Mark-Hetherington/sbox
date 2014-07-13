@@ -308,7 +308,7 @@ class Sbox(SageObject):
             sage: S=Sbox(n=3,m=1)
             sage: S.generate_sbox(method='polynomial',G="x^3")
             sage: S
-            [0, 1, 3, 4, 5, 6, 7, 2]
+            [0, 1, 1, 0, 1, 0, 1, 0]
 
             sage: S=Sbox(n=3,m=3)
             sage: S.generate_sbox(method='inverse')
