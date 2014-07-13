@@ -22,7 +22,46 @@ load ./Sbox.sage
 def test_temp(**kargs):
     bits=kargs.get('bits',3)
 
+    
     S=Sbox(n=bits,m=bits)
+
+    S.generate_sbox(method='inverse',T='EA')
+
+    sbox1 = S.get_sbox()
+    print "sbox\t: {0}".format(sbox1)
+
+    T=S.get_linear_functions()
+
+    S.generate_sbox(method='inverse',T='EA',fast=True,M1=T[0],M2=T[1],M3=T[2],V1=T[3].list(),V2=T[4].list())
+
+    sbox2 = S.get_sbox()
+    print "sbox\t: {0}".format(sbox2)
+
+    print "sbox\t: {0}".format(sbox2==sbox1)
+
+    # times = 10
+
+    # for bits in xrange(2,11):
+    #     S=Sbox(n=bits,m=bits)
+    #     t1=cputime()
+    #     for _ in xrange(times):
+    #         S.generate_sbox(method='inverse',T='EA')
+    #     t2=cputime()
+
+    #     print "Old{0}: {1}".format(bits,(t2-t1))
+
+    # print ""
+
+    # for bits in xrange(2,11):
+    #     S=Sbox(n=bits,m=bits)
+    #     t1=cputime()
+    #     for _ in xrange(times):
+    #         S.generate_sbox(method='inverse',T='EA',fast=True)
+    #     t2=cputime()
+
+    #     print "New{0}: {1}".format(bits,(t2-t1))
+
+    return
 
     S.generate_sbox(method='APN6')
 
