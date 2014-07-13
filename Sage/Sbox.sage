@@ -371,10 +371,7 @@ class Sbox(SageObject):
                     kwargs['M1'] = 'random'
                     kwargs['M2'] = 'random'
 
-        if kwargs.has_key('fast'):
-            self._EA_fast(**kwargs)
-        else:
-            self._EA(**kwargs)
+        self._EA(**kwargs)
         
     def get_item(self, x):
         r"""
@@ -797,7 +794,6 @@ class Sbox(SageObject):
     _CCZ=gen_CCZ
     _dickson=gen_dickson
     _dobbertin=gen_dobbertin
-    _EA_fast=gen_EA_fast
     _EA=gen_EA
     _gold=gen_gold
     _inverse=gen_inverse

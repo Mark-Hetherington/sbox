@@ -22,22 +22,17 @@ load ./Sbox.sage
 def test_temp(**kargs):
     bits=kargs.get('bits',3)
 
-    
     S=Sbox(n=bits,m=bits)
 
     S.generate_sbox(method='inverse',T='EA')
 
-    sbox1 = S.get_sbox()
-    print "sbox\t: {0}".format(sbox1)
+    sbox = S.get_sbox()
 
-    T=S.get_linear_functions()
+    #print "sbox\t: {0}".format(sbox)
 
-    S.generate_sbox(method='inverse',T='EA',fast=True,M1=T[0],M2=T[1],M3=T[2],V1=T[3].list(),V2=T[4].list())
+    S.generate_sbox(method='polynomial',G=S.interpolation_polynomial())
 
-    sbox2 = S.get_sbox()
-    print "sbox\t: {0}".format(sbox2)
-
-    print "sbox\t: {0}".format(sbox2==sbox1)
+    print "sbox\t: {0}".format(sbox == S.get_sbox())
 
     # times = 10
 
