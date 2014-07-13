@@ -337,7 +337,7 @@ def gen_EA(self, **kwargs):
     self._LFoEA = [M1,M2,M3,V1,V2]
 
     for i in xrange(self._length):
-        self._S[i] = matrix(GF(2),self._n,1,ZZ(i).digits(base=2,padto=self._n)) # reverse
+        self._S[i] = matrix(GF(2),self._n,1,ZZ(i).digits(base=2,padto=self._n)[::-1]) # reverse
 
         if M2 is not None:
             self._S[i] = M2*self._S[i]
@@ -345,20 +345,20 @@ def gen_EA(self, **kwargs):
         if V2 is not None:
             self._S[i] = self._S[i]+V2
 
-        self._S[i] = self._K(self._S[i].list()) # reverse
+        self._S[i] = self._K(self._S[i].list()[::-1]) # reverse
         self._S[i] = G.subs(self._S[i])
-        self._S[i] = matrix(GF(2),self._m,1,self._S[i]._vector_().list()) # reverse
+        self._S[i] = matrix(GF(2),self._m,1,self._S[i]._vector_().list()[::-1]) # reverse
 
         if M1 is not None:
             self._S[i] = M1*self._S[i]
 
         if M3 is not None:
-            self._S[i] = self._S[i] + M3*matrix(GF(2),self._n,1,ZZ(i).digits(base=2,padto=self._n)) # reverse
+            self._S[i] = self._S[i] + M3*matrix(GF(2),self._n,1,ZZ(i).digits(base=2,padto=self._n)[::-1]) # reverse
 
         if V1 is not None:
             self._S[i] = self._S[i]+V1
 
-        self._S[i] = ZZ(self._S[i].list(),2) # reverse
+        self._S[i] = ZZ(self._S[i].list()[::-1],2) # reverse
 
 def gen_gold(self, **kwargs):
     r"""
