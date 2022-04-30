@@ -1,5 +1,6 @@
 #!/usr/bin/env sage
 from random import choice, sample
+import json
 
 r"""
     An example of how to use the class "Sbox" from external code
@@ -93,15 +94,18 @@ def generate_next_sbox(solutions):
             sbox = permute_sbox(start_sbox['sbox'])
             sbox = assess_sbox_solution(sbox)
             if sbox['score'] > start_sbox['score']:
+                print(f"Permuted better solution in {i} iterations")
                 return sbox
 
     # return a newly generated sbox
+    print("Generating new random solution")
     return assess_sbox_solution(gen_new_sbox())
         
 
 def main(argv=None):
     # bits=8
     solutions = []
+    solution_count = 0
 
     t1=cputime()
     t2=cputime()
@@ -111,17 +115,19 @@ def main(argv=None):
 
     # Keep looking for solutions until a specific amount of time has passed or until we have 8
     while (t2 - t1) < 60 or len(solutions) < 8:  
+        solution_count+=1
         solution = generate_next_sbox(solutions)
         print("Found solution with score ", solution['score'])
         solutions.append(solution)
         t2=cputime()
 
     print(solutions)
-
-    
+    with open("results.json","w") as f:
+        json.dump(solutions, f)
 
     print("=====")
     print("Time = {0}".format(t2-t1))
+    print("Seconds per solution = {0}".format((t2-t1)/solution_count))
 
 
 if __name__ == "__main__":
