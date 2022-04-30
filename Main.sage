@@ -102,6 +102,10 @@ def generate_next_sbox(solutions):
     # return a newly generated sbox
     print("Generating new random solution")
     return assess_sbox_solution(gen_new_sbox())
+
+def save_results(solutions):
+    with open(f"results{datetime.datetime.utcnow().isoformat().replace(':','-')}.json","w") as f:
+        json.dump(solutions, f, cls=json_sage)
         
 class json_sage(json.JSONEncoder):
     def default(self, o):
@@ -146,12 +150,12 @@ def main(argv=None):
         solution_count+=1
         solution = generate_next_sbox(solutions)
         print(f"Found solution with score {solution['score']}, minimum_degree {solution['minimum_degree']}, algebraic_immunity {solution['algebraic_immunity']}, nonlinearity {solution['nonlinearity']}, uniformity {solution['uniformity']}" )
-        solutions.append(solution)
+        solutions.append(solution)        
+        save_results(solutions)
         t2=cputime()
 
-    print(solutions)    
-    with open(f"results{datetime.datetime.utcnow().isoformat().replace(':','-')}.json","w") as f:
-        json.dump(solutions, f, cls=json_sage)
+    print(solutions)
+    save_results(solutions)
 
     print("=====")
     print("Time = {0}".format(t2-t1))
