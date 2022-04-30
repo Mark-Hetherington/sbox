@@ -96,6 +96,7 @@ def generate_next_sbox(solutions):
             if sbox['score'] > start_sbox['score']:
                 print(f"Permuted better solution in {i} iterations")
                 return sbox
+            start_sbox = sbox['sbox'].get_sbox()
 
     # return a newly generated sbox
     print("Generating new random solution")
