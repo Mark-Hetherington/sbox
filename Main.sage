@@ -88,7 +88,7 @@ def assess_sbox_solution(sbox):
 def generate_next_sbox(solutions):
     
     # If we have existing solutions we can choose to modify an existing solution from the top 10
-    solutions.sort(key=lambda sol:sol['score'])
+    solutions.sort(key=lambda sol:sol['score'], reverse=True)
     start_sbox = choice(solutions[:10]) if solutions else None
     if start_sbox:
         # try 100 permutations to find a better solution
