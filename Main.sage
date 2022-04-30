@@ -145,7 +145,7 @@ def main(argv=None):
     # test_temp(bits=bits)
     # gen_8_12()
     print("Seeding solutions")
-    for generator_method in ['dobbertin','dickson','gold','inverse','kasami','niho','random_substitution','welch']:    
+    for generator_method in ['dickson','gold','inverse','kasami','niho','random_substitution','welch']:    
         solution = assess_sbox_solution(gen_new_sbox(generator_method))
         print(f"Seeding solution with score {solution['score']}, minimum_degree {solution['minimum_degree']}, algebraic_immunity {solution['algebraic_immunity']}, nonlinearity {solution['nonlinearity']}, uniformity {solution['uniformity']}" )
         solutions.append(solution)
