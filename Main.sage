@@ -105,7 +105,7 @@ def generate_next_sbox(solutions):
     return assess_sbox_solution(gen_new_sbox())
 
 def save_results(solutions):
-    with open(f"results{datetime.datetime.utcnow().isoformat().replace(':','-')}.json","w") as f:
+    with open(f"results/{datetime.datetime.utcnow().isoformat().replace(':','-')}--{len(solutions)}.json","w") as f:
         json.dump(solutions, f, cls=json_sage)
         
 class json_sage(json.JSONEncoder):
