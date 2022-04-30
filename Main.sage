@@ -1,4 +1,5 @@
 #!/usr/bin/env sage
+from random import choice, sample
 
 r"""
     An example of how to use the class "Sbox" from external code
@@ -22,15 +23,102 @@ os.chdir(os.path.split(os.path.abspath(sys.argv[0]))[0] + "/Sage")
 
 load("./TestFunctions.sage")
 
+def gen_8_12():
+    S=Sbox(n=8,m=12)
+
+    # S.generate_sbox(method='APN6')
+    S.generate_sbox(method='random_substitution')
+
+    print("Sbox\t\t\t\t: {0}".format(S.get_sbox()))
+    print("")
+    print("Characteristics of component functions")
+    print("Balanced\t\t\t: {0}".format(S.is_balanced()))
+    print("Nonlinearity\t\t\t: {0}".format(S.NL()))
+    print("Absolute indicator\t\t: {0}".format(S.absolute_indicator()))
+    print("Propagation criterion\t\t: {0}".format(S.PC()))
+    print("Correlation immunity\t\t: {0}".format(S.CI()))
+    print("Sum-of-squares indicator\t: {0}".format(S.SSI()))
+    print("Minimum degree\t\t\t: {0}".format(S.minimum_degree()))
+    print("Resilient\t\t\t: {0}".format(S.resilient()))
+    print("SAC\t\t\t\t: {0}".format(S.SAC()))
+    print("")
+    print("Characteristics of the substitution")
+    print("Bijection\t\t\t: {0}".format(S.is_bijection()))
+    print("Interpolation polynomial\t: {0}".format(S.interpolation_polynomial()))
+    print("Check interpolation polynomial\t: {0}".format(S.check_polynomial()))
+    print("Multiplicative generator\t: {0}".format(S.get_mg()))
+    print("Modulus\t\t\t\t: {0}".format(S.get_modulus()))
+    print("Maximum of diff table\t\t: {0}".format(S.MDT()))
+    print("Maximum of lin table\t\t: {0}".format(S.MLT()))
+    print("Cycles\t\t\t\t: {0}".format(S.cycles()))
+    ret=S.algebraic_immunity_sbox()
+    print("Algebraic immunity\t\t: degree={0} equations={1}".format(ret[0],ret[1]))
+    print("Check system\t\t\t: {0}".format(S.check_system(degree=ret[0])))
+    print("~"*40)
+    print("")
+
+def gen_new_sbox():
+    S=Sbox(n=8,m=12)
+    S.generate_sbox(method='random_substitution')
+    return S
+
+def permute_sbox(sbox):
+    subs = sbox.get_sbox()
+    out_sbox = Sbox(n=8,m=12)
+    idx = range(len(subs))
+    i1, i2 = sample(idx, 2)
+    subs[i1], subs[i2] = subs[i2], subs[i1]
+    out_sbox.set_sbox(subs)
+    return out_sbox
+
+
+def assess_sbox_solution(sbox):
+    ret=sbox.algebraic_immunity_sbox()
+    if sbox.fixed_points():
+        score = 0
+    else:
+        score = (sbox.NL() * 0.01) \
+            + (sbox.minimum_degree() * 0.15) \
+            + ((ret[0]+(ret[1]/1000))*0.5) \
+            + (sbox.MDT()*0.125)
+    return {"sbox": sbox, "minimum_degree":sbox.minimum_degree(), "algebraic_immunity": ret[0], "number_algebraic_equations": ret[1], "nonlinearity": sbox.NL(), "uniformity": sbox.MDT(), "fixed_points": sbox.fixed_points(), "score": score }
+
+def generate_next_sbox(solutions):
+    
+    # If we have existing solutions we can choose to modify an existing solution. 
+    start_sbox = choice(solutions) if solutions else None
+    if start_sbox:
+        # try 100 permutations to find a better solution
+        for i in range(100):
+            sbox = permute_sbox(start_sbox['sbox'])
+            sbox = assess_sbox_solution(sbox)
+            if sbox['score'] > start_sbox['score']:
+                return sbox
+
+    # return a newly generated sbox
+    return assess_sbox_solution(gen_new_sbox())
+        
+
 def main(argv=None):
-    bits=8
+    # bits=8
+    solutions = []
 
     t1=cputime()
-
-    test_all_functions(bits=bits)
-    # test_temp(bits=bits)
-
     t2=cputime()
+    # test_all_functions(bits=bits)
+    # test_temp(bits=bits)
+    # gen_8_12()
+
+    # Keep looking for solutions until a specific amount of time has passed or until we have 8
+    while (t2 - t1) < 60 or len(solutions) < 8:  
+        solution = generate_next_sbox(solutions)
+        print("Found solution with score ", solution['score'])
+        solutions.append(solution)
+        t2=cputime()
+
+    print(solutions)
+
+    
 
     print("=====")
     print("Time = {0}".format(t2-t1))
