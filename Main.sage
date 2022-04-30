@@ -144,7 +144,7 @@ def main(argv=None):
     while ((t2 - t1) < 60*60 or len(solutions) < 8) and not interrupted:  
         solution_count+=1
         solution = generate_next_sbox(solutions)
-        print("Found solution with score ", solution['score'])
+        print(f"Found solution with score {solution['score']}, minimum_degree {solution['minimum_degree']}, algebraic_immunity {solution['algebraic_immunity']}, nonlinearity {solution['nonlinearity']}, uniformity {solution['uniformity']}" )
         solutions.append(solution)
         t2=cputime()
 
