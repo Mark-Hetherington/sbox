@@ -1,6 +1,7 @@
 #!/usr/bin/env sage
 from random import choice, sample
 import json
+import signal
 
 r"""
     An example of how to use the class "Sbox" from external code
@@ -63,13 +64,12 @@ def gen_new_sbox():
     S.generate_sbox(method='random_substitution')
     return S
 
-def permute_sbox(sbox):
-    subs = sbox.get_sbox()
+def permute_sbox(sbox):    
     out_sbox = Sbox(n=8,m=12)
-    idx = range(len(subs))
+    idx = range(len(sbox))
     i1, i2 = sample(idx, 2)
-    subs[i1], subs[i2] = subs[i2], subs[i1]
-    out_sbox.set_sbox(subs)
+    sbox[i1], sbox[i2] = sbox[i2], sbox[i1]
+    out_sbox.set_sbox(sbox)
     return out_sbox
 
 
@@ -82,7 +82,7 @@ def assess_sbox_solution(sbox):
             + (sbox.minimum_degree() * 0.15) \
             + ((ret[0]+(ret[1]/1000))*0.5) \
             + (sbox.MDT()*0.125)
-    return {"sbox": sbox, "minimum_degree":sbox.minimum_degree(), "algebraic_immunity": ret[0], "number_algebraic_equations": ret[1], "nonlinearity": sbox.NL(), "uniformity": sbox.MDT(), "fixed_points": sbox.fixed_points(), "score": score }
+    return {"sbox": sbox.get_sbox(), "minimum_degree":sbox.minimum_degree(), "algebraic_immunity": ret[0], "number_algebraic_equations": ret[1], "nonlinearity": sbox.NL(), "uniformity": sbox.MDT(), "fixed_points": sbox.fixed_points(), "score": score }
 
 def generate_next_sbox(solutions):
     
@@ -101,8 +101,33 @@ def generate_next_sbox(solutions):
     print("Generating new random solution")
     return assess_sbox_solution(gen_new_sbox())
         
+class json_sage(json.JSONEncoder):
+    def default(self, o):
+        try:
+            if type(o)==sage.rings.integer.Integer:
+                return int(o)
+            elif type(o)==sage.rings.real_mpfr.RealLiteral:
+                return float(o)
+            elif type(o)==sage.rings.real_mpfr.RealNumber:
+                return float(o)
+            elif type(o)==sage.symbolic.expression.Expression:
+                return latex(o)
+        except TypeError:
+            pass
+
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, o)
+
+def signal_handler(signal, frame):
+    global interrupted
+    interrupted = True
+
+signal.signal(signal.SIGINT, signal_handler)
+
+interrupted = False
 
 def main(argv=None):
+    global interrupted
     # bits=8
     solutions = []
     solution_count = 0
@@ -113,17 +138,18 @@ def main(argv=None):
     # test_temp(bits=bits)
     # gen_8_12()
 
-    # Keep looking for solutions until a specific amount of time has passed or until we have 8
-    while (t2 - t1) < 60 or len(solutions) < 8:  
+    
+    # Keep looking for solutions until a specific amount of time has passed or until we have 8    
+    while ((t2 - t1) < 60*60 or len(solutions) < 8) and not interrupted:  
         solution_count+=1
         solution = generate_next_sbox(solutions)
         print("Found solution with score ", solution['score'])
         solutions.append(solution)
         t2=cputime()
 
-    print(solutions)
+    print(solutions)    
     with open("results.json","w") as f:
-        json.dump(solutions, f)
+        json.dump(solutions, f, cls=json_sage)
 
     print("=====")
     print("Time = {0}".format(t2-t1))
