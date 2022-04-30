@@ -2,6 +2,7 @@
 from random import choice, sample
 import json
 import signal
+import datetime
 
 r"""
     An example of how to use the class "Sbox" from external code
@@ -149,7 +150,7 @@ def main(argv=None):
         t2=cputime()
 
     print(solutions)    
-    with open("results.json","w") as f:
+    with open(f"results{datetime.datetime.utcnow().isoformat().replace(':','-')}.json","w") as f:
         json.dump(solutions, f, cls=json_sage)
 
     print("=====")
