@@ -60,9 +60,9 @@ def gen_8_12():
     print("~"*40)
     print("")
 
-def gen_new_sbox():
+def gen_new_sbox(method='random_substitution'):
     S=Sbox(n=8,m=12)
-    S.generate_sbox(method='random_substitution')
+    S.generate_sbox(method=method)
     return S
 
 def permute_sbox(sbox):    
@@ -144,7 +144,11 @@ def main(argv=None):
     # test_all_functions(bits=bits)
     # test_temp(bits=bits)
     # gen_8_12()
-
+    print("Seeding solutions")
+    for generator_method in ['dobbertin','dickson','gold','inverse','kasami','niho','random_substitution','welch']:    
+        solution = assess_sbox_solution(gen_new_sbox(generator_method))
+        print(f"Seeding solution with score {solution['score']}, minimum_degree {solution['minimum_degree']}, algebraic_immunity {solution['algebraic_immunity']}, nonlinearity {solution['nonlinearity']}, uniformity {solution['uniformity']}" )
+        solutions.append(solution)
     
     # Keep looking for solutions until a specific amount of time has passed or until we have 8    
     while ((t2 - t1) < 60*60 or len(solutions) < 8) and not interrupted:  
@@ -155,8 +159,7 @@ def main(argv=None):
         save_results(solutions)
         t2=cputime()
 
-    print(solutions)
-    save_results(solutions)
+    print(f"Found {len(solutions)} solutions.")
 
     print("=====")
     print("Time = {0}".format(t2-t1))
