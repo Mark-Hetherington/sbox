@@ -24,7 +24,7 @@ AUTHORS:
 
 os.chdir(os.path.split(os.path.abspath(sys.argv[0]))[0] + "/Sage")
 
-load("./TestFunctions.sage")
+load("./Sbox.sage")
 
 def gen_new_sbox(method='random_substitution'):
     S=Sbox(n=8,m=12)
