@@ -151,7 +151,7 @@ def main(argv=None):
         solutions.append(solution)
     
     # Keep looking for solutions until a specific amount of time has passed or until we have 8    
-    while ((t2 - t1) < 60*60 or len(solutions) < 8) and not interrupted:  
+    while ((t2 - t1) < 60*60*5 or len(solutions) < 8) and not interrupted:  
         solution_count+=1
         solution = generate_next_sbox(solutions)
         print(f"Found solution with score {solution['score']}, minimum_degree {solution['minimum_degree']}, algebraic_immunity {solution['algebraic_immunity']}, nonlinearity {solution['nonlinearity']}, uniformity {solution['uniformity']}" )
