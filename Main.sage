@@ -47,7 +47,7 @@ def assess_sbox_solution(sbox):
     else:
         score = (sbox.NL() * 0.01) \
             + (sbox.minimum_degree() * 0.15) \
-            + ((ret[0]+(ret[1]/1000))*0.33) \
+            + ((ret[0]-(ret[1]/1000))*0.33) \
             + (sbox.MDT()*-0.125)
     return {"sbox": sbox.get_sbox(), "minimum_degree":sbox.minimum_degree(), "algebraic_immunity": ret[0], "number_algebraic_equations": ret[1], "nonlinearity": sbox.NL(), "uniformity": sbox.MDT(), "fixed_points": sbox.fixed_points(), "score": score }
 
